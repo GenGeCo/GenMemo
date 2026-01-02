@@ -171,9 +171,9 @@ class R2Storage {
 
         $uploadPath = $file['tmp_name'];
 
-        // Resize images to standard size for app (16:9 landscape for mobile)
+        // Resize images to standard size for app (16:9 qHD for mobile)
         if ($isImage && $resizeImage) {
-            $resized = $this->resizeImage($file['tmp_name'], 800, 450, 85);
+            $resized = $this->resizeImage($file['tmp_name'], 960, 540, 85);
             if ($resized) {
                 $uploadPath = $resized;
                 $mimeType = 'image/jpeg'; // Always convert to JPEG for consistency
@@ -196,16 +196,16 @@ class R2Storage {
     }
 
     /**
-     * Resize an image to fit within max dimensions (16:9 for mobile app)
+     * Resize an image to fit within max dimensions (16:9 qHD for mobile app)
      * Image is scaled to fit and centered on canvas if needed
      *
      * @param string $sourcePath Path to source image
-     * @param int $maxWidth Maximum width (default 800)
-     * @param int $maxHeight Maximum height (default 450 for 16:9)
+     * @param int $maxWidth Maximum width (default 960 for qHD)
+     * @param int $maxHeight Maximum height (default 540 for qHD 16:9)
      * @param int $quality JPEG quality (1-100)
      * @return string|false Path to resized image or false on failure
      */
-    private function resizeImage(string $sourcePath, int $maxWidth = 800, int $maxHeight = 450, int $quality = 85) {
+    private function resizeImage(string $sourcePath, int $maxWidth = 960, int $maxHeight = 540, int $quality = 85) {
         // Get image info
         $imageInfo = getimagesize($sourcePath);
         if (!$imageInfo) {

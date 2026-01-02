@@ -63,16 +63,16 @@ function handleLogin() {
     }
 
     $user = db()->fetch(
-        "SELECT id, username, email, password, is_verified FROM users WHERE email = ?",
+        "SELECT id, username, email, password_hash, is_active FROM users WHERE email = ?",
         [$email]
     );
 
-    if (!$user || !password_verify($password, $user['password'])) {
+    if (!$user || !password_verify($password, $user['password_hash'])) {
         jsonResponse(['error' => 'Credenziali non valide'], 401);
     }
 
-    if (!$user['is_verified']) {
-        jsonResponse(['error' => 'Account non verificato. Controlla la tua email.'], 403);
+    if (!$user['is_active']) {
+        jsonResponse(['error' => 'Account disattivato.'], 403);
     }
 
     // Generate app token
@@ -135,12 +135,12 @@ function handleRegister() {
         jsonResponse(['error' => 'Email o username già in uso'], 409);
     }
 
-    // Create user (auto-verified for app registration)
+    // Create user (auto-active for app registration)
     $userId = db()->insert('users', [
         'username' => $username,
         'email' => $email,
-        'password' => password_hash($password, PASSWORD_BCRYPT, ['cost' => HASH_COST]),
-        'is_verified' => 1, // Auto-verify for app users
+        'password_hash' => password_hash($password, PASSWORD_BCRYPT, ['cost' => HASH_COST]),
+        'is_active' => 1,
         'created_at' => date('Y-m-d H:i:s')
     ]);
 

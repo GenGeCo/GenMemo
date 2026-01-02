@@ -134,50 +134,72 @@ function redirect(string $url, string $message = null, string $type = 'info'): v
  * Generate AI prompt for package creation
  */
 function generateAiPrompt(array $config): string {
-    $questionTypes = implode(', ', $config['question_types']);
-    $answerTypes = implode(', ', $config['answer_types']);
     $numQuestions = (int) $config['num_questions'];
     $topic = e($config['topic']);
     $language = $config['language'] ?? 'italiano';
+    $ttsLang = $config['tts_lang'] ?? 'it-IT';
+
+    $hasQuestionTts = in_array('tts', $config['question_types']);
+    $hasAnswerTts = in_array('tts', $config['answer_types']);
+    $hasQuestionImage = in_array('image', $config['question_types']);
+    $hasAnswerImage = in_array('image', $config['answer_types']);
 
     $prompt = "Genera un pacchetto di $numQuestions domande sul tema: \"$topic\" in lingua $language.\n\n";
     $prompt .= "FORMATO OUTPUT RICHIESTO (JSON valido):\n";
     $prompt .= "```json\n";
     $prompt .= "{\n";
+
+    // Settings TTS a livello pacchetto
+    if ($hasQuestionTts || $hasAnswerTts) {
+        $prompt .= "  \"tts\": {\n";
+        $prompt .= "    \"enabled\": true,\n";
+        $prompt .= "    \"lang\": \"$ttsLang\"\n";
+        $prompt .= "  },\n";
+    }
+
     $prompt .= "  \"questions\": [\n";
     $prompt .= "    {\n";
     $prompt .= "      \"question\": \"Testo della domanda\",\n";
 
-    if (in_array('image', $config['question_types'])) {
-        $prompt .= "      \"question_image\": \"[INSERIRE_IMMAGINE_1]\",\n";
+    if ($hasQuestionTts) {
+        $prompt .= "      \"question_tts\": true,\n";
     }
-    if (in_array('audio', $config['question_types'])) {
-        $prompt .= "      \"question_audio\": \"[INSERIRE_AUDIO_1]\",\n";
+    if ($hasQuestionImage) {
+        $prompt .= "      \"question_image\": \"[INSERIRE_IMMAGINE_1]\",\n";
     }
 
     $prompt .= "      \"answers\": [\n";
     $prompt .= "        {\n";
     $prompt .= "          \"text\": \"Risposta corretta\",\n";
 
-    if (in_array('image', $config['answer_types'])) {
-        $prompt .= "          \"image\": \"[INSERIRE_IMMAGINE_RISPOSTA]\",\n";
+    if ($hasAnswerTts) {
+        $prompt .= "          \"tts\": true,\n";
     }
-    if (in_array('audio', $config['answer_types'])) {
-        $prompt .= "          \"audio\": \"[INSERIRE_AUDIO_RISPOSTA]\",\n";
+    if ($hasAnswerImage) {
+        $prompt .= "          \"image\": \"[INSERIRE_IMMAGINE_RISPOSTA]\",\n";
     }
 
     $prompt .= "          \"correct\": true\n";
     $prompt .= "        },\n";
     $prompt .= "        {\n";
     $prompt .= "          \"text\": \"Risposta errata 1\",\n";
+    if ($hasAnswerTts) {
+        $prompt .= "          \"tts\": true,\n";
+    }
     $prompt .= "          \"correct\": false\n";
     $prompt .= "        },\n";
     $prompt .= "        {\n";
     $prompt .= "          \"text\": \"Risposta errata 2\",\n";
+    if ($hasAnswerTts) {
+        $prompt .= "          \"tts\": true,\n";
+    }
     $prompt .= "          \"correct\": false\n";
     $prompt .= "        },\n";
     $prompt .= "        {\n";
     $prompt .= "          \"text\": \"Risposta errata 3\",\n";
+    if ($hasAnswerTts) {
+        $prompt .= "          \"tts\": true,\n";
+    }
     $prompt .= "          \"correct\": false\n";
     $prompt .= "        }\n";
     $prompt .= "      ]\n";
@@ -192,11 +214,14 @@ function generateAiPrompt(array $config): string {
     $prompt .= "3. Le domande devono essere variate e coprire diversi aspetti del tema\n";
     $prompt .= "4. Usa un linguaggio chiaro e appropriato\n";
 
-    if (in_array('image', $config['question_types']) || in_array('image', $config['answer_types'])) {
-        $prompt .= "5. I placeholder [INSERIRE_IMMAGINE_X] verranno sostituiti con le immagini dall'utente\n";
+    $instrNum = 5;
+    if ($hasQuestionTts || $hasAnswerTts) {
+        $prompt .= "$instrNum. I campi \"tts\": true indicano che il testo verra letto ad alta voce dall'app (Text-to-Speech)\n";
+        $instrNum++;
     }
-    if (in_array('audio', $config['question_types']) || in_array('audio', $config['answer_types'])) {
-        $prompt .= "6. I placeholder [INSERIRE_AUDIO_X] verranno sostituiti con gli audio dall'utente\n";
+    if ($hasQuestionImage || $hasAnswerImage) {
+        $prompt .= "$instrNum. I placeholder [INSERIRE_IMMAGINE_X] verranno sostituiti con le immagini dall'utente\n";
+        $instrNum++;
     }
 
     $prompt .= "\nRispondi SOLO con il JSON, senza commenti o spiegazioni.";

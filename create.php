@@ -33,6 +33,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $questionTypes = $_POST['question_types'] ?? ['text'];
             $answerTypes = $_POST['answer_types'] ?? ['text'];
             $totalQuestions = max(1, min(100, (int) ($_POST['total_questions'] ?? 10)));
+            $ttsLang = $_POST['tts_lang'] ?? 'it-IT';
 
             if (empty($name)) {
                 $error = 'Il nome del pacchetto e obbligatorio.';
@@ -47,6 +48,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     'question_types' => json_encode($questionTypes),
                     'answer_types' => json_encode($answerTypes),
                     'total_questions' => $totalQuestions,
+                    'tts_lang' => $ttsLang,
                     'status' => 'draft',
                     'created_at' => date('Y-m-d H:i:s')
                 ];
@@ -194,8 +196,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                     <span class="checkbox-label">Testo</span>
                                 </label>
                                 <label class="checkbox-item">
-                                    <input type="checkbox" name="question_types[]" value="audio" class="checkbox-input" <?= in_array('audio', $savedQTypes) ? 'checked' : '' ?>>
-                                    <span class="checkbox-label">Audio</span>
+                                    <input type="checkbox" name="question_types[]" value="tts" class="checkbox-input" <?= in_array('tts', $savedQTypes) ? 'checked' : '' ?> onchange="toggleTtsLang()">
+                                    <span class="checkbox-label">Audio (TTS)</span>
                                 </label>
                                 <label class="checkbox-item">
                                     <input type="checkbox" name="question_types[]" value="image" class="checkbox-input" <?= in_array('image', $savedQTypes) ? 'checked' : '' ?>>
@@ -216,8 +218,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                     <span class="checkbox-label">Testo</span>
                                 </label>
                                 <label class="checkbox-item">
-                                    <input type="checkbox" name="answer_types[]" value="audio" class="checkbox-input" <?= in_array('audio', $savedATypes) ? 'checked' : '' ?>>
-                                    <span class="checkbox-label">Audio</span>
+                                    <input type="checkbox" name="answer_types[]" value="tts" class="checkbox-input" <?= in_array('tts', $savedATypes) ? 'checked' : '' ?> onchange="toggleTtsLang()">
+                                    <span class="checkbox-label">Audio (TTS)</span>
                                 </label>
                                 <label class="checkbox-item">
                                     <input type="checkbox" name="answer_types[]" value="image" class="checkbox-input" <?= in_array('image', $savedATypes) ? 'checked' : '' ?>>
@@ -225,6 +227,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 </label>
                             </div>
                         </div>
+
+                        <div class="form-group" id="tts-lang-group" style="display: none;">
+                            <label class="form-label" for="tts_lang">Lingua Text-to-Speech</label>
+                            <?php $savedTtsLang = $package['tts_lang'] ?? 'it-IT'; ?>
+                            <select id="tts_lang" name="tts_lang" class="form-input">
+                                <option value="it-IT" <?= $savedTtsLang === 'it-IT' ? 'selected' : '' ?>>Italiano</option>
+                                <option value="en-US" <?= $savedTtsLang === 'en-US' ? 'selected' : '' ?>>English (US)</option>
+                                <option value="en-GB" <?= $savedTtsLang === 'en-GB' ? 'selected' : '' ?>>English (UK)</option>
+                                <option value="es-ES" <?= $savedTtsLang === 'es-ES' ? 'selected' : '' ?>>Espanol</option>
+                                <option value="fr-FR" <?= $savedTtsLang === 'fr-FR' ? 'selected' : '' ?>>Francais</option>
+                                <option value="de-DE" <?= $savedTtsLang === 'de-DE' ? 'selected' : '' ?>>Deutsch</option>
+                                <option value="pt-PT" <?= $savedTtsLang === 'pt-PT' ? 'selected' : '' ?>>Portugues</option>
+                                <option value="ja-JP" <?= $savedTtsLang === 'ja-JP' ? 'selected' : '' ?>>Japanese</option>
+                                <option value="zh-CN" <?= $savedTtsLang === 'zh-CN' ? 'selected' : '' ?>>Chinese</option>
+                            </select>
+                            <p class="form-hint">La lingua usata per leggere il testo ad alta voce</p>
+                        </div>
+
+                        <script>
+                        function toggleTtsLang() {
+                            const qTts = document.querySelector('input[name="question_types[]"][value="tts"]');
+                            const aTts = document.querySelector('input[name="answer_types[]"][value="tts"]');
+                            const langGroup = document.getElementById('tts-lang-group');
+                            langGroup.style.display = (qTts.checked || aTts.checked) ? 'block' : 'none';
+                        }
+                        // Check on page load
+                        document.addEventListener('DOMContentLoaded', toggleTtsLang);
+                        </script>
 
                         <div class="form-group">
                             <label class="form-label" for="total_questions">Numero di Domande</label>
@@ -303,7 +333,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             'answer_types' => $answerTypes,
                             'num_questions' => $package['total_questions'],
                             'topic' => $package['topic'] ?: $package['name'],
-                            'language' => 'italiano'
+                            'language' => 'italiano',
+                            'tts_lang' => $package['tts_lang'] ?? 'it-IT'
                         ]);
                         ?>
 

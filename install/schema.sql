@@ -28,9 +28,10 @@ CREATE TABLE IF NOT EXISTS packages (
     topic VARCHAR(255),
 
     -- Settings
-    question_types JSON NOT NULL COMMENT '["text", "audio", "image"]',
-    answer_types JSON NOT NULL COMMENT '["text", "audio", "image"]',
+    question_types JSON NOT NULL COMMENT '["text", "tts", "image"]',
+    answer_types JSON NOT NULL COMMENT '["text", "tts", "image"]',
     total_questions INT UNSIGNED NOT NULL DEFAULT 0,
+    tts_lang VARCHAR(10) NOT NULL DEFAULT 'it-IT' COMMENT 'Text-to-Speech language code',
 
     -- Status
     status ENUM('draft', 'published', 'archived') NOT NULL DEFAULT 'draft',

@@ -569,12 +569,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                         </div>
                                     <?php endif; ?>
 
-                                    <?php if (isset($question['question_image'])): ?>
-                                        <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.5rem;">
-                                            Placeholder: <mark style="background: var(--accent); color: var(--bg-primary); padding: 0.1rem 0.3rem; border-radius: 3px;"><?= e($question['question_image']) ?></mark>
-                                        </div>
-                                    <?php endif; ?>
-
                                     <?php if (isset($question['answers']) && is_array($question['answers'])): ?>
                                         <div style="margin-top: 0.5rem; padding-left: 1rem; border-left: 2px solid var(--bg-tertiary);">
                                             <?php foreach ($question['answers'] as $aIndex => $answer): ?>

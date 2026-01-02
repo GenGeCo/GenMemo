@@ -154,8 +154,6 @@ function generateAiPrompt(array $config): string {
 
     $hasQuestionTts = in_array('tts', $config['question_types']);
     $hasAnswerTts = in_array('tts', $config['answer_types']);
-    $hasQuestionImage = in_array('image', $config['question_types']);
-    $hasAnswerImage = in_array('image', $config['answer_types']);
 
     // Modalita di risposta
     $hasMultiple = in_array('multiple', $answerModes);
@@ -197,7 +195,6 @@ function generateAiPrompt(array $config): string {
         $prompt .= "      \"question\": \"Testo della domanda\",\n";
         $prompt .= "      \"mode\": \"multiple\",\n";
         if ($hasQuestionTts) $prompt .= "      \"question_tts\": true,\n";
-        if ($hasQuestionImage) $prompt .= "      \"question_image\": \"[INSERIRE_IMMAGINE_Q1]\",\n";
         $prompt .= "      \"answers\": [\n";
         $prompt .= "        {\"text\": \"Risposta corretta\"" . ($hasAnswerTts ? ", \"tts\": true" : "") . ", \"correct\": true},\n";
         $prompt .= "        {\"text\": \"Risposta errata 1\"" . ($hasAnswerTts ? ", \"tts\": true" : "") . ", \"correct\": false},\n";
@@ -263,14 +260,8 @@ function generateAiPrompt(array $config): string {
     $prompt .= "4. Usa un linguaggio chiaro e appropriato\n";
     $prompt .= "5. Il campo \"mode\" e OBBLIGATORIO per ogni domanda\n";
 
-    $instrNum = 6;
     if ($hasQuestionTts || $hasAnswerTts) {
-        $prompt .= "$instrNum. I campi \"tts\": true indicano che il testo verra letto ad alta voce dall'app\n";
-        $instrNum++;
-    }
-    if ($hasQuestionImage || $hasAnswerImage) {
-        $prompt .= "$instrNum. I placeholder [INSERIRE_IMMAGINE_X] verranno sostituiti con le immagini dall'utente\n";
-        $instrNum++;
+        $prompt .= "6. I campi \"tts\": true indicano che il testo verra letto ad alta voce dall'app\n";
     }
 
     $prompt .= "\nRispondi SOLO con il JSON, senza commenti o spiegazioni.";

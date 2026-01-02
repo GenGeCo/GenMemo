@@ -127,9 +127,10 @@ class R2Storage {
      *
      * @param array $file $_FILES['fieldname']
      * @param string $folder Folder in R2 (e.g., 'packages/uuid')
+     * @param bool $resizeImage Whether to resize images (default: true)
      * @return array
      */
-    public function uploadFromForm(array $file, string $folder): array {
+    public function uploadFromForm(array $file, string $folder, bool $resizeImage = true): array {
         if ($file['error'] !== UPLOAD_ERR_OK) {
             $errors = [
                 UPLOAD_ERR_INI_SIZE => 'File too large (php.ini limit)',
@@ -168,12 +169,121 @@ class R2Storage {
             ];
         }
 
+        $uploadPath = $file['tmp_name'];
+
+        // Resize images to standard size for app
+        if ($isImage && $resizeImage) {
+            $resized = $this->resizeImage($file['tmp_name'], 800, 800, 85);
+            if ($resized) {
+                $uploadPath = $resized;
+                $mimeType = 'image/jpeg'; // Always convert to JPEG for consistency
+            }
+        }
+
         // Generate unique filename
-        $ext = pathinfo($file['name'], PATHINFO_EXTENSION);
-        $filename = randomString(16) . '.' . strtolower($ext);
+        $ext = $isImage && $resizeImage ? 'jpg' : strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+        $filename = randomString(16) . '.' . $ext;
         $key = trim($folder, '/') . '/' . $filename;
 
-        return $this->upload($file['tmp_name'], $key, $mimeType);
+        $result = $this->upload($uploadPath, $key, $mimeType);
+
+        // Clean up temp resized file
+        if ($uploadPath !== $file['tmp_name'] && file_exists($uploadPath)) {
+            unlink($uploadPath);
+        }
+
+        return $result;
+    }
+
+    /**
+     * Resize an image to fit within max dimensions while maintaining aspect ratio
+     * Creates a square canvas with the image centered
+     *
+     * @param string $sourcePath Path to source image
+     * @param int $maxWidth Maximum width
+     * @param int $maxHeight Maximum height
+     * @param int $quality JPEG quality (1-100)
+     * @return string|false Path to resized image or false on failure
+     */
+    private function resizeImage(string $sourcePath, int $maxWidth = 800, int $maxHeight = 800, int $quality = 85) {
+        // Get image info
+        $imageInfo = getimagesize($sourcePath);
+        if (!$imageInfo) {
+            return false;
+        }
+
+        $origWidth = $imageInfo[0];
+        $origHeight = $imageInfo[1];
+        $mimeType = $imageInfo['mime'];
+
+        // Create source image based on type
+        switch ($mimeType) {
+            case 'image/jpeg':
+                $source = imagecreatefromjpeg($sourcePath);
+                break;
+            case 'image/png':
+                $source = imagecreatefrompng($sourcePath);
+                break;
+            case 'image/gif':
+                $source = imagecreatefromgif($sourcePath);
+                break;
+            case 'image/webp':
+                $source = imagecreatefromwebp($sourcePath);
+                break;
+            default:
+                return false;
+        }
+
+        if (!$source) {
+            return false;
+        }
+
+        // Calculate new dimensions maintaining aspect ratio
+        $ratio = min($maxWidth / $origWidth, $maxHeight / $origHeight);
+
+        // Only resize if image is larger than max dimensions
+        if ($ratio < 1) {
+            $newWidth = (int) round($origWidth * $ratio);
+            $newHeight = (int) round($origHeight * $ratio);
+        } else {
+            $newWidth = $origWidth;
+            $newHeight = $origHeight;
+        }
+
+        // Create new image with white background
+        $dest = imagecreatetruecolor($newWidth, $newHeight);
+
+        // Fill with white background
+        $white = imagecolorallocate($dest, 255, 255, 255);
+        imagefill($dest, 0, 0, $white);
+
+        // Preserve transparency for PNG
+        if ($mimeType === 'image/png') {
+            imagealphablending($dest, false);
+            imagesavealpha($dest, true);
+            $transparent = imagecolorallocatealpha($dest, 255, 255, 255, 127);
+            imagefill($dest, 0, 0, $transparent);
+        }
+
+        // Resize
+        imagecopyresampled(
+            $dest, $source,
+            0, 0, 0, 0,
+            $newWidth, $newHeight,
+            $origWidth, $origHeight
+        );
+
+        // Save to temp file
+        $tempPath = sys_get_temp_dir() . '/' . randomString(16) . '.jpg';
+
+        // Always save as JPEG for consistency and smaller file size
+        $success = imagejpeg($dest, $tempPath, $quality);
+
+        // Clean up
+        imagedestroy($source);
+        imagedestroy($dest);
+
+        return $success ? $tempPath : false;
     }
 
     /**

@@ -32,6 +32,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $topic = trim($_POST['topic'] ?? '');
             $questionTypes = $_POST['question_types'] ?? ['text'];
             $answerTypes = $_POST['answer_types'] ?? ['text'];
+            $answerModes = $_POST['answer_modes'] ?? ['multiple'];
             $totalQuestions = max(1, min(100, (int) ($_POST['total_questions'] ?? 10)));
 
             if (empty($name)) {
@@ -46,6 +47,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     'topic' => $topic,
                     'question_types' => json_encode($questionTypes),
                     'answer_types' => json_encode($answerTypes),
+                    'answer_modes' => json_encode($answerModes),
                     'total_questions' => $totalQuestions,
                     'status' => 'draft',
                     'created_at' => date('Y-m-d H:i:s')
@@ -227,6 +229,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         </div>
 
                         <div class="form-group">
+                            <label class="form-label">Modalita di Risposta</label>
+                            <p class="form-hint">Seleziona una o piu modalita (l'AI scegliera quale usare per ogni domanda)</p>
+                            <div class="checkbox-group">
+                                <?php
+                                $savedModes = $package && isset($package['answer_modes']) ? json_decode($package['answer_modes'], true) : ['multiple'];
+                                if (!$savedModes) $savedModes = ['multiple'];
+                                ?>
+                                <label class="checkbox-item">
+                                    <input type="checkbox" name="answer_modes[]" value="multiple" class="checkbox-input" <?= in_array('multiple', $savedModes) ? 'checked' : '' ?>>
+                                    <span class="checkbox-label">Risposta multipla (4 opzioni)</span>
+                                </label>
+                                <label class="checkbox-item">
+                                    <input type="checkbox" name="answer_modes[]" value="truefalse" class="checkbox-input" <?= in_array('truefalse', $savedModes) ? 'checked' : '' ?>>
+                                    <span class="checkbox-label">Vero/Falso</span>
+                                </label>
+                                <label class="checkbox-item">
+                                    <input type="checkbox" name="answer_modes[]" value="write_exact" class="checkbox-input" <?= in_array('write_exact', $savedModes) ? 'checked' : '' ?>>
+                                    <span class="checkbox-label">Scrivi risposta esatta</span>
+                                </label>
+                                <label class="checkbox-item">
+                                    <input type="checkbox" name="answer_modes[]" value="write_word" class="checkbox-input" <?= in_array('write_word', $savedModes) ? 'checked' : '' ?>>
+                                    <span class="checkbox-label">Scrivi una parola</span>
+                                </label>
+                                <label class="checkbox-item">
+                                    <input type="checkbox" name="answer_modes[]" value="write_partial" class="checkbox-input" <?= in_array('write_partial', $savedModes) ? 'checked' : '' ?>>
+                                    <span class="checkbox-label">Scrivi risposta (controllo parziale)</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
                             <label class="form-label" for="total_questions">Numero di Domande</label>
                             <input
                                 type="number"
@@ -290,6 +323,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $method = $_GET['method'] ?? 'ai';
                     $questionTypes = json_decode($package['question_types'], true);
                     $answerTypes = json_decode($package['answer_types'], true);
+                    $answerModes = isset($package['answer_modes']) ? json_decode($package['answer_modes'], true) : ['multiple'];
                     ?>
 
                     <?php if ($method === 'ai'): ?>
@@ -301,6 +335,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $aiPrompt = generateAiPrompt([
                             'question_types' => $questionTypes,
                             'answer_types' => $answerTypes,
+                            'answer_modes' => $answerModes,
                             'num_questions' => $package['total_questions'],
                             'topic' => $package['topic'] ?: $package['name']
                         ]);
@@ -458,8 +493,67 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $uploadedPlaceholders = array_column($uploadedMedia, 'file_key', 'placeholder');
                     ?>
 
-                    <h2 class="section-title">Aggiungi Media</h2>
-                    <p class="section-subtitle">Carica immagini e audio per "<?= e($package['name']) ?>"</p>
+                    <h2 class="section-title">Rivedi e Aggiungi Media</h2>
+                    <p class="section-subtitle">Controlla le domande e carica le immagini per "<?= e($package['name']) ?>"</p>
+
+                    <!-- Anteprima Domande -->
+                    <?php if ($packageJson && isset($packageJson['questions'])): ?>
+                        <div class="questions-preview" style="max-width: 900px; margin: 0 auto 2rem;">
+                            <h3 style="margin-bottom: 1rem; color: var(--text-secondary);">Anteprima Domande (<?= count($packageJson['questions']) ?>)</h3>
+                            <?php foreach ($packageJson['questions'] as $qIndex => $question): ?>
+                                <div class="question-preview-card" style="background: var(--bg-secondary); border-radius: 8px; padding: 1rem; margin-bottom: 1rem; border-left: 3px solid var(--accent);">
+                                    <div class="question-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                                        <span style="font-weight: bold; color: var(--accent);">Domanda <?= $qIndex + 1 ?></span>
+                                        <span class="mode-badge" style="font-size: 0.75rem; background: var(--bg-tertiary); padding: 0.25rem 0.5rem; border-radius: 4px;">
+                                            <?php
+                                            $mode = $question['mode'] ?? 'multiple';
+                                            $modeLabels = [
+                                                'multiple' => 'Multipla',
+                                                'truefalse' => 'Vero/Falso',
+                                                'write_exact' => 'Scrivi esatto',
+                                                'write_word' => 'Scrivi parola',
+                                                'write_partial' => 'Scrivi parziale'
+                                            ];
+                                            echo $modeLabels[$mode] ?? $mode;
+                                            ?>
+                                        </span>
+                                    </div>
+                                    <p style="margin-bottom: 0.75rem;">
+                                        <?php
+                                        $qText = e($question['question'] ?? '');
+                                        // Evidenzia i placeholder
+                                        $qText = preg_replace('/\[INSERIRE_IMMAGINE_[^\]]+\]/', '<mark style="background: var(--accent); color: var(--bg-primary); padding: 0.1rem 0.3rem; border-radius: 3px;">$0</mark>', $qText);
+                                        echo $qText;
+                                        ?>
+                                    </p>
+                                    <?php if (isset($question['question_image'])): ?>
+                                        <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.5rem;">
+                                            Immagine domanda: <mark style="background: var(--accent); color: var(--bg-primary); padding: 0.1rem 0.3rem; border-radius: 3px;"><?= e($question['question_image']) ?></mark>
+                                        </div>
+                                    <?php endif; ?>
+
+                                    <?php if (isset($question['answers']) && is_array($question['answers'])): ?>
+                                        <div style="margin-top: 0.5rem; padding-left: 1rem; border-left: 2px solid var(--bg-tertiary);">
+                                            <?php foreach ($question['answers'] as $aIndex => $answer): ?>
+                                                <div style="padding: 0.25rem 0; <?= ($answer['correct'] ?? false) ? 'color: #4ade80; font-weight: 500;' : 'color: var(--text-secondary);' ?>">
+                                                    <?= ($answer['correct'] ?? false) ? '✓' : '○' ?>
+                                                    <?php
+                                                    $aText = e($answer['text'] ?? '');
+                                                    $aText = preg_replace('/\[INSERIRE_IMMAGINE_[^\]]+\]/', '<mark style="background: var(--accent); color: var(--bg-primary); padding: 0.1rem 0.3rem; border-radius: 3px;">$0</mark>', $aText);
+                                                    echo $aText;
+                                                    ?>
+                                                </div>
+                                            <?php endforeach; ?>
+                                        </div>
+                                    <?php elseif (isset($question['correct_answer'])): ?>
+                                        <div style="margin-top: 0.5rem; padding-left: 1rem; border-left: 2px solid var(--bg-tertiary); color: #4ade80;">
+                                            ✓ Risposta: <?= e(is_bool($question['correct_answer']) ? ($question['correct_answer'] ? 'Vero' : 'Falso') : $question['correct_answer']) ?>
+                                        </div>
+                                    <?php endif; ?>
+                                </div>
+                            <?php endforeach; ?>
+                        </div>
+                    <?php endif; ?>
 
                     <?php if (empty($placeholders)): ?>
                         <div class="alert alert-success">

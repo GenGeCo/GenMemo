@@ -136,13 +136,33 @@ function redirect(string $url, string $message = null, string $type = 'info'): v
 function generateAiPrompt(array $config): string {
     $numQuestions = (int) $config['num_questions'];
     $topic = e($config['topic']);
+    $answerModes = $config['answer_modes'] ?? ['multiple'];
 
     $hasQuestionTts = in_array('tts', $config['question_types']);
     $hasAnswerTts = in_array('tts', $config['answer_types']);
     $hasQuestionImage = in_array('image', $config['question_types']);
     $hasAnswerImage = in_array('image', $config['answer_types']);
 
+    // Modalita di risposta
+    $hasMultiple = in_array('multiple', $answerModes);
+    $hasTrueFalse = in_array('truefalse', $answerModes);
+    $hasWriteExact = in_array('write_exact', $answerModes);
+    $hasWriteWord = in_array('write_word', $answerModes);
+    $hasWritePartial = in_array('write_partial', $answerModes);
+
     $prompt = "Genera un pacchetto di $numQuestions domande sul tema: \"$topic\".\n\n";
+
+    // Descrivi le modalita disponibili
+    $modesDesc = [];
+    if ($hasMultiple) $modesDesc[] = "risposta multipla (4 opzioni)";
+    if ($hasTrueFalse) $modesDesc[] = "vero/falso";
+    if ($hasWriteExact) $modesDesc[] = "scrivi risposta esatta";
+    if ($hasWriteWord) $modesDesc[] = "scrivi una parola";
+    if ($hasWritePartial) $modesDesc[] = "scrivi risposta (controllo parziale)";
+
+    $prompt .= "MODALITA DI RISPOSTA DISPONIBILI: " . implode(', ', $modesDesc) . "\n";
+    $prompt .= "Scegli tu la modalita piu appropriata per ogni domanda, variando tra quelle disponibili.\n\n";
+
     $prompt .= "FORMATO OUTPUT RICHIESTO (JSON valido):\n";
     $prompt .= "```json\n";
     $prompt .= "{\n";
@@ -155,65 +175,83 @@ function generateAiPrompt(array $config): string {
     }
 
     $prompt .= "  \"questions\": [\n";
-    $prompt .= "    {\n";
-    $prompt .= "      \"question\": \"Testo della domanda\",\n";
 
-    if ($hasQuestionTts) {
-        $prompt .= "      \"question_tts\": true,\n";
-    }
-    if ($hasQuestionImage) {
-        $prompt .= "      \"question_image\": \"[INSERIRE_IMMAGINE_1]\",\n";
-    }
-
-    $prompt .= "      \"answers\": [\n";
-    $prompt .= "        {\n";
-    $prompt .= "          \"text\": \"Risposta corretta\",\n";
-
-    if ($hasAnswerTts) {
-        $prompt .= "          \"tts\": true,\n";
-    }
-    if ($hasAnswerImage) {
-        $prompt .= "          \"image\": \"[INSERIRE_IMMAGINE_RISPOSTA]\",\n";
+    // Esempio per risposta multipla
+    if ($hasMultiple) {
+        $prompt .= "    // Esempio RISPOSTA MULTIPLA:\n";
+        $prompt .= "    {\n";
+        $prompt .= "      \"question\": \"Testo della domanda\",\n";
+        $prompt .= "      \"mode\": \"multiple\",\n";
+        if ($hasQuestionTts) $prompt .= "      \"question_tts\": true,\n";
+        if ($hasQuestionImage) $prompt .= "      \"question_image\": \"[INSERIRE_IMMAGINE_Q1]\",\n";
+        $prompt .= "      \"answers\": [\n";
+        $prompt .= "        {\"text\": \"Risposta corretta\"" . ($hasAnswerTts ? ", \"tts\": true" : "") . ", \"correct\": true},\n";
+        $prompt .= "        {\"text\": \"Risposta errata 1\"" . ($hasAnswerTts ? ", \"tts\": true" : "") . ", \"correct\": false},\n";
+        $prompt .= "        {\"text\": \"Risposta errata 2\"" . ($hasAnswerTts ? ", \"tts\": true" : "") . ", \"correct\": false},\n";
+        $prompt .= "        {\"text\": \"Risposta errata 3\"" . ($hasAnswerTts ? ", \"tts\": true" : "") . ", \"correct\": false}\n";
+        $prompt .= "      ]\n";
+        $prompt .= "    },\n";
     }
 
-    $prompt .= "          \"correct\": true\n";
-    $prompt .= "        },\n";
-    $prompt .= "        {\n";
-    $prompt .= "          \"text\": \"Risposta errata 1\",\n";
-    if ($hasAnswerTts) {
-        $prompt .= "          \"tts\": true,\n";
+    // Esempio per vero/falso
+    if ($hasTrueFalse) {
+        $prompt .= "    // Esempio VERO/FALSO:\n";
+        $prompt .= "    {\n";
+        $prompt .= "      \"question\": \"Affermazione da valutare\",\n";
+        $prompt .= "      \"mode\": \"truefalse\",\n";
+        if ($hasQuestionTts) $prompt .= "      \"question_tts\": true,\n";
+        $prompt .= "      \"correct_answer\": true  // oppure false\n";
+        $prompt .= "    },\n";
     }
-    $prompt .= "          \"correct\": false\n";
-    $prompt .= "        },\n";
-    $prompt .= "        {\n";
-    $prompt .= "          \"text\": \"Risposta errata 2\",\n";
-    if ($hasAnswerTts) {
-        $prompt .= "          \"tts\": true,\n";
+
+    // Esempio per scrivi risposta esatta
+    if ($hasWriteExact) {
+        $prompt .= "    // Esempio SCRIVI RISPOSTA ESATTA:\n";
+        $prompt .= "    {\n";
+        $prompt .= "      \"question\": \"Domanda che richiede risposta precisa\",\n";
+        $prompt .= "      \"mode\": \"write_exact\",\n";
+        if ($hasQuestionTts) $prompt .= "      \"question_tts\": true,\n";
+        $prompt .= "      \"correct_answer\": \"risposta esatta\"  // case-insensitive\n";
+        $prompt .= "    },\n";
     }
-    $prompt .= "          \"correct\": false\n";
-    $prompt .= "        },\n";
-    $prompt .= "        {\n";
-    $prompt .= "          \"text\": \"Risposta errata 3\",\n";
-    if ($hasAnswerTts) {
-        $prompt .= "          \"tts\": true,\n";
+
+    // Esempio per scrivi una parola
+    if ($hasWriteWord) {
+        $prompt .= "    // Esempio SCRIVI UNA PAROLA:\n";
+        $prompt .= "    {\n";
+        $prompt .= "      \"question\": \"Come si dice 'cane' in inglese?\",\n";
+        $prompt .= "      \"mode\": \"write_word\",\n";
+        if ($hasQuestionTts) $prompt .= "      \"question_tts\": true,\n";
+        $prompt .= "      \"correct_answer\": \"dog\"  // una sola parola\n";
+        $prompt .= "    },\n";
     }
-    $prompt .= "          \"correct\": false\n";
-    $prompt .= "        }\n";
-    $prompt .= "      ]\n";
-    $prompt .= "    }\n";
+
+    // Esempio per scrivi risposta parziale
+    if ($hasWritePartial) {
+        $prompt .= "    // Esempio SCRIVI RISPOSTA (controllo parziale):\n";
+        $prompt .= "    {\n";
+        $prompt .= "      \"question\": \"Chi ha scoperto l'America?\",\n";
+        $prompt .= "      \"mode\": \"write_partial\",\n";
+        if ($hasQuestionTts) $prompt .= "      \"question_tts\": true,\n";
+        $prompt .= "      \"correct_answer\": \"Colombo\",  // parola chiave da cercare\n";
+        $prompt .= "      \"accept_also\": [\"Cristoforo\", \"1492\"]  // opzionale: altre parole accettate\n";
+        $prompt .= "    },\n";
+    }
+
     $prompt .= "  ]\n";
     $prompt .= "}\n";
     $prompt .= "```\n\n";
 
     $prompt .= "ISTRUZIONI:\n";
     $prompt .= "1. Genera esattamente $numQuestions domande\n";
-    $prompt .= "2. Ogni domanda deve avere 4 risposte (1 corretta, 3 errate)\n";
+    $prompt .= "2. Varia le modalita di risposta tra quelle disponibili\n";
     $prompt .= "3. Le domande devono essere variate e coprire diversi aspetti del tema\n";
     $prompt .= "4. Usa un linguaggio chiaro e appropriato\n";
+    $prompt .= "5. Il campo \"mode\" e OBBLIGATORIO per ogni domanda\n";
 
-    $instrNum = 5;
+    $instrNum = 6;
     if ($hasQuestionTts || $hasAnswerTts) {
-        $prompt .= "$instrNum. I campi \"tts\": true indicano che il testo verra letto ad alta voce dall'app (Text-to-Speech)\n";
+        $prompt .= "$instrNum. I campi \"tts\": true indicano che il testo verra letto ad alta voce dall'app\n";
         $instrNum++;
     }
     if ($hasQuestionImage || $hasAnswerImage) {

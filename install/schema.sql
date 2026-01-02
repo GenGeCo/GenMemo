@@ -30,6 +30,7 @@ CREATE TABLE IF NOT EXISTS packages (
     -- Settings
     question_types JSON NOT NULL COMMENT '["text", "tts", "image"]',
     answer_types JSON NOT NULL COMMENT '["text", "tts", "image"]',
+    answer_modes JSON NOT NULL DEFAULT '["multiple"]' COMMENT '["multiple", "truefalse", "write_exact", "write_word", "write_partial"]',
     total_questions INT UNSIGNED NOT NULL DEFAULT 0,
 
     -- Status

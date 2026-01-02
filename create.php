@@ -479,11 +479,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     if (file_exists($jsonPath)) {
                         $packageJson = json_decode(file_get_contents($jsonPath), true);
 
-                        // Find all placeholders
+                        // Find all placeholders in the JSON
                         $jsonString = json_encode($packageJson);
                         preg_match_all('/\[INSERIRE_(IMMAGINE|AUDIO)_[^\]]+\]/', $jsonString, $matches);
                         $placeholders = array_unique($matches[0]);
                     }
+
+                    // Check if user selected image type in Step 1
+                    $questionTypes = json_decode($package['question_types'], true) ?: [];
+                    $answerTypes = json_decode($package['answer_types'], true) ?: [];
+                    $hasImageType = in_array('image', $questionTypes) || in_array('image', $answerTypes);
 
                     // Get already uploaded media
                     $uploadedMedia = db()->fetchAll(
@@ -496,11 +501,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <h2 class="section-title">Rivedi e Aggiungi Media</h2>
                     <p class="section-subtitle">Controlla le domande e carica le immagini per "<?= e($package['name']) ?>"</p>
 
-                    <!-- Anteprima Domande -->
+                    <!-- Anteprima Domande con Upload Immagini -->
                     <?php if ($packageJson && isset($packageJson['questions'])): ?>
                         <div class="questions-preview" style="max-width: 900px; margin: 0 auto 2rem;">
                             <h3 style="margin-bottom: 1rem; color: var(--text-secondary);">Anteprima Domande (<?= count($packageJson['questions']) ?>)</h3>
                             <?php foreach ($packageJson['questions'] as $qIndex => $question): ?>
+                                <?php
+                                $qPlaceholder = "[QUESTION_IMAGE_" . ($qIndex + 1) . "]";
+                                $hasQuestionImage = isset($question['question_image']) || isset($uploadedPlaceholders[$qPlaceholder]);
+                                ?>
                                 <div class="question-preview-card" style="background: var(--bg-secondary); border-radius: 8px; padding: 1rem; margin-bottom: 1rem; border-left: 3px solid var(--accent);">
                                     <div class="question-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
                                         <span style="font-weight: bold; color: var(--accent);">Domanda <?= $qIndex + 1 ?></span>
@@ -526,9 +535,43 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                         echo $qText;
                                         ?>
                                     </p>
+
+                                    <?php if ($hasImageType && in_array('image', $questionTypes)): ?>
+                                        <!-- Upload immagine per questa domanda -->
+                                        <div class="question-image-upload" style="margin: 0.75rem 0; padding: 0.75rem; background: var(--bg-tertiary); border-radius: 6px;">
+                                            <?php if (isset($uploadedPlaceholders[$qPlaceholder])): ?>
+                                                <div style="display: flex; align-items: center; gap: 0.5rem; color: #4ade80;">
+                                                    <span>OK</span>
+                                                    <span>Immagine domanda caricata</span>
+                                                </div>
+                                            <?php else: ?>
+                                                <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
+                                                    <span style="color: var(--text-muted); font-size: 0.85rem;">Immagine domanda:</span>
+                                                    <input
+                                                        type="file"
+                                                        id="q-img-<?= $qIndex ?>"
+                                                        accept="image/jpeg,image/png,image/gif,image/webp"
+                                                        style="display: none;"
+                                                        onchange="uploadQuestionImage(<?= $qIndex ?>, 'question')"
+                                                    >
+                                                    <button
+                                                        type="button"
+                                                        class="btn-secondary btn-small"
+                                                        onclick="document.getElementById('q-img-<?= $qIndex ?>').click()"
+                                                        id="btn-q-<?= $qIndex ?>"
+                                                        style="padding: 0.25rem 0.75rem; font-size: 0.8rem;"
+                                                    >
+                                                        Carica Immagine
+                                                    </button>
+                                                    <span id="status-q-<?= $qIndex ?>" style="font-size: 0.8rem; color: var(--text-muted);"></span>
+                                                </div>
+                                            <?php endif; ?>
+                                        </div>
+                                    <?php endif; ?>
+
                                     <?php if (isset($question['question_image'])): ?>
                                         <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.5rem;">
-                                            Immagine domanda: <mark style="background: var(--accent); color: var(--bg-primary); padding: 0.1rem 0.3rem; border-radius: 3px;"><?= e($question['question_image']) ?></mark>
+                                            Placeholder: <mark style="background: var(--accent); color: var(--bg-primary); padding: 0.1rem 0.3rem; border-radius: 3px;"><?= e($question['question_image']) ?></mark>
                                         </div>
                                     <?php endif; ?>
 
@@ -555,7 +598,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         </div>
                     <?php endif; ?>
 
-                    <?php if (empty($placeholders)): ?>
+                    <?php if (empty($placeholders) && !$hasImageType): ?>
                         <div class="alert alert-success">
                             <span class="alert-icon">OK</span>
                             <div>
@@ -568,7 +611,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 Pubblica Pacchetto
                             </a>
                         </div>
-                    <?php else: ?>
+                    <?php elseif (!empty($placeholders)): ?>
                         <div class="alert alert-info">
                             <span class="alert-icon">i</span>
                             <div>
@@ -677,6 +720,123 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                     status.textContent = 'Errore di connessione';
                                     btn.disabled = false;
                                     btn.textContent = mediaType === 'image' ? 'Carica Immagine' : 'Carica Audio';
+                                }
+                            }
+
+                            async function uploadQuestionImage(questionIndex, type) {
+                                const fileInput = document.getElementById('q-img-' + questionIndex);
+                                const file = fileInput.files[0];
+                                if (!file) return;
+
+                                const btn = document.getElementById('btn-q-' + questionIndex);
+                                const status = document.getElementById('status-q-' + questionIndex);
+
+                                btn.disabled = true;
+                                btn.textContent = 'Caricamento...';
+                                status.textContent = 'Caricamento in corso...';
+
+                                const placeholder = '[QUESTION_IMAGE_' + (questionIndex + 1) + ']';
+
+                                const formData = new FormData();
+                                formData.append('file', file);
+                                formData.append('package_id', packageId);
+                                formData.append('placeholder', placeholder);
+                                formData.append('question_index', questionIndex);
+                                formData.append('csrf_token', csrfToken);
+
+                                try {
+                                    const response = await fetch('api/upload-media.php', {
+                                        method: 'POST',
+                                        body: formData
+                                    });
+
+                                    const result = await response.json();
+
+                                    if (result.success) {
+                                        status.textContent = 'Caricato!';
+                                        status.style.color = '#4ade80';
+                                        btn.outerHTML = '<span style="color: #4ade80;">OK Caricata</span>';
+                                    } else {
+                                        status.textContent = 'Errore: ' + result.error;
+                                        btn.disabled = false;
+                                        btn.textContent = 'Carica Immagine';
+                                    }
+                                } catch (error) {
+                                    status.textContent = 'Errore di connessione';
+                                    btn.disabled = false;
+                                    btn.textContent = 'Carica Immagine';
+                                }
+                            }
+                        </script>
+                    <?php elseif ($hasImageType): ?>
+                        <!-- Nessun placeholder ma l'utente ha selezionato immagini -->
+                        <div class="alert alert-info" style="max-width: 900px; margin: 0 auto 1rem;">
+                            <span class="alert-icon">i</span>
+                            <div>
+                                Puoi caricare un'immagine per ogni domanda usando i pulsanti "Carica Immagine" sopra.
+                                Le immagini sono opzionali.
+                            </div>
+                        </div>
+
+                        <div style="display: flex; gap: 1rem; margin-top: 2rem; max-width: 800px; margin-left: auto; margin-right: auto;">
+                            <a href="create.php?step=3&package=<?= $package['uuid'] ?>&method=ai" class="btn-ghost" style="flex: 1; justify-content: center;">
+                                Indietro
+                            </a>
+                            <a href="publish.php?package=<?= $package['uuid'] ?>" class="btn-primary" style="flex: 2; justify-content: center;">
+                                Pubblica Pacchetto
+                            </a>
+                        </div>
+
+                        <p style="text-align: center; margin-top: 1rem; color: var(--text-muted);">
+                            Puoi pubblicare senza immagini o caricarle ora.
+                        </p>
+
+                        <script>
+                            const packageId = '<?= $package['uuid'] ?>';
+                            const csrfToken = '<?= Auth::csrfToken() ?>';
+
+                            async function uploadQuestionImage(questionIndex, type) {
+                                const fileInput = document.getElementById('q-img-' + questionIndex);
+                                const file = fileInput.files[0];
+                                if (!file) return;
+
+                                const btn = document.getElementById('btn-q-' + questionIndex);
+                                const status = document.getElementById('status-q-' + questionIndex);
+
+                                btn.disabled = true;
+                                btn.textContent = 'Caricamento...';
+                                status.textContent = 'Caricamento in corso...';
+
+                                const placeholder = '[QUESTION_IMAGE_' + (questionIndex + 1) + ']';
+
+                                const formData = new FormData();
+                                formData.append('file', file);
+                                formData.append('package_id', packageId);
+                                formData.append('placeholder', placeholder);
+                                formData.append('question_index', questionIndex);
+                                formData.append('csrf_token', csrfToken);
+
+                                try {
+                                    const response = await fetch('api/upload-media.php', {
+                                        method: 'POST',
+                                        body: formData
+                                    });
+
+                                    const result = await response.json();
+
+                                    if (result.success) {
+                                        status.textContent = 'Caricato!';
+                                        status.style.color = '#4ade80';
+                                        btn.outerHTML = '<span style="color: #4ade80;">OK Caricata</span>';
+                                    } else {
+                                        status.textContent = 'Errore: ' + result.error;
+                                        btn.disabled = false;
+                                        btn.textContent = 'Carica Immagine';
+                                    }
+                                } catch (error) {
+                                    status.textContent = 'Errore di connessione';
+                                    btn.disabled = false;
+                                    btn.textContent = 'Carica Immagine';
                                 }
                             }
                         </script>

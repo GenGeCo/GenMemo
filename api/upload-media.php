@@ -72,10 +72,18 @@ try {
         $packageJson = json_decode(file_get_contents($jsonPath), true);
 
         if ($packageJson) {
-            // Replace placeholder in questions
-            $jsonString = json_encode($packageJson);
-            $jsonString = str_replace($placeholder, $result['url'], $jsonString);
-            $packageJson = json_decode($jsonString, true);
+            // Check if this is a direct question image upload (placeholder format: [QUESTION_IMAGE_X])
+            if (preg_match('/^\[QUESTION_IMAGE_(\d+)\]$/', $placeholder, $matches)) {
+                $qIndex = (int)$matches[1] - 1; // Convert to 0-based index
+                if (isset($packageJson['questions'][$qIndex])) {
+                    $packageJson['questions'][$qIndex]['question_image'] = $result['url'];
+                }
+            } else {
+                // Replace placeholder in questions text
+                $jsonString = json_encode($packageJson);
+                $jsonString = str_replace($placeholder, $result['url'], $jsonString);
+                $packageJson = json_decode($jsonString, true);
+            }
 
             file_put_contents($jsonPath, json_encode($packageJson, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
         }

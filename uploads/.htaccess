@@ -1,4 +1,4 @@
-# Allow access to media files but prevent PHP execution
+# Allow access to media files (images, audio) but prevent PHP execution
 <IfModule mod_php.c>
     php_flag engine off
 </IfModule>

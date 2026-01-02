@@ -1,4 +1,4 @@
-# Deny all direct access to this directory
+# Deny all direct access to this directory (config.php, Auth.php, etc.)
 <IfModule mod_authz_core.c>
     Require all denied
 </IfModule>

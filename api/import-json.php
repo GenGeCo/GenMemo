@@ -71,11 +71,14 @@ db()->update('packages', [
     'updated_at' => date('Y-m-d H:i:s')
 ], 'id = ?', [$package['id']]);
 
-// Check if media is needed
+// Check if media is needed (look for image placeholders in the JSON)
+$jsonString = json_encode($packageJson);
+$hasImagePlaceholders = preg_match('/\[INSERIRE_IMMAGINE_[^\]]+\]/', $jsonString);
+
+// Also check if image type was selected
 $questionTypes = json_decode($package['question_types'], true);
 $answerTypes = json_decode($package['answer_types'], true);
-$needsMedia = in_array('audio', $questionTypes) || in_array('image', $questionTypes)
-           || in_array('audio', $answerTypes) || in_array('image', $answerTypes);
+$needsMedia = $hasImagePlaceholders || in_array('image', $questionTypes) || in_array('image', $answerTypes);
 
 if ($needsMedia) {
     // Go to media upload step

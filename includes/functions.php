@@ -77,19 +77,33 @@ function validatePackageJson(string $json): array {
     $data = json_decode($json, true);
 
     if (json_last_error() !== JSON_ERROR_NONE) {
-        return ['valid' => false, 'error' => 'Invalid JSON format'];
+        return ['valid' => false, 'error' => 'JSON non valido: ' . json_last_error_msg()];
     }
 
     if (!isset($data['questions']) || !is_array($data['questions'])) {
-        return ['valid' => false, 'error' => 'Missing or invalid questions array'];
+        return ['valid' => false, 'error' => 'Manca l\'array "questions"'];
     }
 
     foreach ($data['questions'] as $index => $q) {
+        $qNum = $index + 1;
+
         if (!isset($q['question'])) {
-            return ['valid' => false, 'error' => "Question #" . ($index + 1) . " is missing 'question' field"];
+            return ['valid' => false, 'error' => "Domanda #$qNum: manca il campo 'question'"];
         }
-        if (!isset($q['answers']) || !is_array($q['answers'])) {
-            return ['valid' => false, 'error' => "Question #" . ($index + 1) . " is missing 'answers' array"];
+
+        $mode = $q['mode'] ?? 'multiple';
+
+        // Validate based on mode
+        if ($mode === 'multiple') {
+            // Multiple choice needs answers array
+            if (!isset($q['answers']) || !is_array($q['answers'])) {
+                return ['valid' => false, 'error' => "Domanda #$qNum (multipla): manca l'array 'answers'"];
+            }
+        } else {
+            // Other modes need correct_answer
+            if (!isset($q['correct_answer'])) {
+                return ['valid' => false, 'error' => "Domanda #$qNum ($mode): manca 'correct_answer'"];
+            }
         }
     }
 

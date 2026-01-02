@@ -232,15 +232,43 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <label class="form-label" for="tts_lang">Lingua Text-to-Speech</label>
                             <?php $savedTtsLang = $package['tts_lang'] ?? 'it-IT'; ?>
                             <select id="tts_lang" name="tts_lang" class="form-input">
-                                <option value="it-IT" <?= $savedTtsLang === 'it-IT' ? 'selected' : '' ?>>Italiano</option>
-                                <option value="en-US" <?= $savedTtsLang === 'en-US' ? 'selected' : '' ?>>English (US)</option>
-                                <option value="en-GB" <?= $savedTtsLang === 'en-GB' ? 'selected' : '' ?>>English (UK)</option>
-                                <option value="es-ES" <?= $savedTtsLang === 'es-ES' ? 'selected' : '' ?>>Espanol</option>
-                                <option value="fr-FR" <?= $savedTtsLang === 'fr-FR' ? 'selected' : '' ?>>Francais</option>
-                                <option value="de-DE" <?= $savedTtsLang === 'de-DE' ? 'selected' : '' ?>>Deutsch</option>
-                                <option value="pt-PT" <?= $savedTtsLang === 'pt-PT' ? 'selected' : '' ?>>Portugues</option>
-                                <option value="ja-JP" <?= $savedTtsLang === 'ja-JP' ? 'selected' : '' ?>>Japanese</option>
-                                <option value="zh-CN" <?= $savedTtsLang === 'zh-CN' ? 'selected' : '' ?>>Chinese</option>
+                                <optgroup label="Europee">
+                                    <option value="it-IT" <?= $savedTtsLang === 'it-IT' ? 'selected' : '' ?>>Italiano</option>
+                                    <option value="en-US" <?= $savedTtsLang === 'en-US' ? 'selected' : '' ?>>English (US)</option>
+                                    <option value="en-GB" <?= $savedTtsLang === 'en-GB' ? 'selected' : '' ?>>English (UK)</option>
+                                    <option value="es-ES" <?= $savedTtsLang === 'es-ES' ? 'selected' : '' ?>>Espanol</option>
+                                    <option value="fr-FR" <?= $savedTtsLang === 'fr-FR' ? 'selected' : '' ?>>Francais</option>
+                                    <option value="de-DE" <?= $savedTtsLang === 'de-DE' ? 'selected' : '' ?>>Deutsch</option>
+                                    <option value="pt-PT" <?= $savedTtsLang === 'pt-PT' ? 'selected' : '' ?>>Portugues</option>
+                                    <option value="pt-BR" <?= $savedTtsLang === 'pt-BR' ? 'selected' : '' ?>>Portugues (Brasil)</option>
+                                    <option value="nl-NL" <?= $savedTtsLang === 'nl-NL' ? 'selected' : '' ?>>Nederlands</option>
+                                    <option value="pl-PL" <?= $savedTtsLang === 'pl-PL' ? 'selected' : '' ?>>Polski</option>
+                                    <option value="ru-RU" <?= $savedTtsLang === 'ru-RU' ? 'selected' : '' ?>>Русский</option>
+                                    <option value="uk-UA" <?= $savedTtsLang === 'uk-UA' ? 'selected' : '' ?>>Українська</option>
+                                    <option value="cs-CZ" <?= $savedTtsLang === 'cs-CZ' ? 'selected' : '' ?>>Cestina</option>
+                                    <option value="el-GR" <?= $savedTtsLang === 'el-GR' ? 'selected' : '' ?>>Ελληνικά</option>
+                                    <option value="ro-RO" <?= $savedTtsLang === 'ro-RO' ? 'selected' : '' ?>>Romana</option>
+                                    <option value="hu-HU" <?= $savedTtsLang === 'hu-HU' ? 'selected' : '' ?>>Magyar</option>
+                                    <option value="sv-SE" <?= $savedTtsLang === 'sv-SE' ? 'selected' : '' ?>>Svenska</option>
+                                    <option value="da-DK" <?= $savedTtsLang === 'da-DK' ? 'selected' : '' ?>>Dansk</option>
+                                    <option value="fi-FI" <?= $savedTtsLang === 'fi-FI' ? 'selected' : '' ?>>Suomi</option>
+                                    <option value="no-NO" <?= $savedTtsLang === 'no-NO' ? 'selected' : '' ?>>Norsk</option>
+                                </optgroup>
+                                <optgroup label="Asiatiche">
+                                    <option value="ja-JP" <?= $savedTtsLang === 'ja-JP' ? 'selected' : '' ?>>日本語</option>
+                                    <option value="zh-CN" <?= $savedTtsLang === 'zh-CN' ? 'selected' : '' ?>>中文 (简体)</option>
+                                    <option value="zh-TW" <?= $savedTtsLang === 'zh-TW' ? 'selected' : '' ?>>中文 (繁體)</option>
+                                    <option value="ko-KR" <?= $savedTtsLang === 'ko-KR' ? 'selected' : '' ?>>한국어</option>
+                                    <option value="hi-IN" <?= $savedTtsLang === 'hi-IN' ? 'selected' : '' ?>>हिन्दी</option>
+                                    <option value="th-TH" <?= $savedTtsLang === 'th-TH' ? 'selected' : '' ?>>ไทย</option>
+                                    <option value="vi-VN" <?= $savedTtsLang === 'vi-VN' ? 'selected' : '' ?>>Tieng Viet</option>
+                                    <option value="id-ID" <?= $savedTtsLang === 'id-ID' ? 'selected' : '' ?>>Bahasa Indonesia</option>
+                                </optgroup>
+                                <optgroup label="Altre">
+                                    <option value="ar-SA" <?= $savedTtsLang === 'ar-SA' ? 'selected' : '' ?>>العربية</option>
+                                    <option value="he-IL" <?= $savedTtsLang === 'he-IL' ? 'selected' : '' ?>>עברית</option>
+                                    <option value="tr-TR" <?= $savedTtsLang === 'tr-TR' ? 'selected' : '' ?>>Turkce</option>
+                                </optgroup>
                             </select>
                             <p class="form-hint">La lingua usata per leggere il testo ad alta voce</p>
                         </div>

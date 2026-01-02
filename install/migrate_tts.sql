@@ -1,7 +1,6 @@
--- Migration: Add TTS (Text-to-Speech) support
--- Run this in phpMyAdmin on Netsons to add TTS language column
+-- Migration: TTS language detection is automatic
+-- No database changes needed - the app will auto-detect language from text
+-- This file is kept for reference only
 
--- Add tts_lang column to packages table
-ALTER TABLE packages
-ADD COLUMN tts_lang VARCHAR(10) NOT NULL DEFAULT 'it-IT' COMMENT 'Text-to-Speech language code'
-AFTER total_questions;
+-- If you previously added tts_lang column, you can remove it with:
+-- ALTER TABLE packages DROP COLUMN tts_lang;

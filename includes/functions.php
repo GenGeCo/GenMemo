@@ -136,15 +136,13 @@ function redirect(string $url, string $message = null, string $type = 'info'): v
 function generateAiPrompt(array $config): string {
     $numQuestions = (int) $config['num_questions'];
     $topic = e($config['topic']);
-    $language = $config['language'] ?? 'italiano';
-    $ttsLang = $config['tts_lang'] ?? 'it-IT';
 
     $hasQuestionTts = in_array('tts', $config['question_types']);
     $hasAnswerTts = in_array('tts', $config['answer_types']);
     $hasQuestionImage = in_array('image', $config['question_types']);
     $hasAnswerImage = in_array('image', $config['answer_types']);
 
-    $prompt = "Genera un pacchetto di $numQuestions domande sul tema: \"$topic\" in lingua $language.\n\n";
+    $prompt = "Genera un pacchetto di $numQuestions domande sul tema: \"$topic\".\n\n";
     $prompt .= "FORMATO OUTPUT RICHIESTO (JSON valido):\n";
     $prompt .= "```json\n";
     $prompt .= "{\n";
@@ -152,8 +150,7 @@ function generateAiPrompt(array $config): string {
     // Settings TTS a livello pacchetto
     if ($hasQuestionTts || $hasAnswerTts) {
         $prompt .= "  \"tts\": {\n";
-        $prompt .= "    \"enabled\": true,\n";
-        $prompt .= "    \"lang\": \"$ttsLang\"\n";
+        $prompt .= "    \"enabled\": true\n";
         $prompt .= "  },\n";
     }
 

@@ -33,7 +33,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $questionTypes = $_POST['question_types'] ?? ['text'];
             $answerTypes = $_POST['answer_types'] ?? ['text'];
             $totalQuestions = max(1, min(100, (int) ($_POST['total_questions'] ?? 10)));
-            $ttsLang = $_POST['tts_lang'] ?? 'it-IT';
 
             if (empty($name)) {
                 $error = 'Il nome del pacchetto e obbligatorio.';
@@ -48,7 +47,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     'question_types' => json_encode($questionTypes),
                     'answer_types' => json_encode($answerTypes),
                     'total_questions' => $totalQuestions,
-                    'tts_lang' => $ttsLang,
                     'status' => 'draft',
                     'created_at' => date('Y-m-d H:i:s')
                 ];
@@ -196,7 +194,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                     <span class="checkbox-label">Testo</span>
                                 </label>
                                 <label class="checkbox-item">
-                                    <input type="checkbox" name="question_types[]" value="tts" class="checkbox-input" <?= in_array('tts', $savedQTypes) ? 'checked' : '' ?> onchange="toggleTtsLang()">
+                                    <input type="checkbox" name="question_types[]" value="tts" class="checkbox-input" <?= in_array('tts', $savedQTypes) ? 'checked' : '' ?>>
                                     <span class="checkbox-label">Audio (TTS)</span>
                                 </label>
                                 <label class="checkbox-item">
@@ -218,7 +216,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                     <span class="checkbox-label">Testo</span>
                                 </label>
                                 <label class="checkbox-item">
-                                    <input type="checkbox" name="answer_types[]" value="tts" class="checkbox-input" <?= in_array('tts', $savedATypes) ? 'checked' : '' ?> onchange="toggleTtsLang()">
+                                    <input type="checkbox" name="answer_types[]" value="tts" class="checkbox-input" <?= in_array('tts', $savedATypes) ? 'checked' : '' ?>>
                                     <span class="checkbox-label">Audio (TTS)</span>
                                 </label>
                                 <label class="checkbox-item">
@@ -227,62 +225,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 </label>
                             </div>
                         </div>
-
-                        <div class="form-group" id="tts-lang-group" style="display: none;">
-                            <label class="form-label" for="tts_lang">Lingua Text-to-Speech</label>
-                            <?php $savedTtsLang = $package['tts_lang'] ?? 'it-IT'; ?>
-                            <select id="tts_lang" name="tts_lang" class="form-input">
-                                <optgroup label="Europee">
-                                    <option value="it-IT" <?= $savedTtsLang === 'it-IT' ? 'selected' : '' ?>>Italiano</option>
-                                    <option value="en-US" <?= $savedTtsLang === 'en-US' ? 'selected' : '' ?>>English (US)</option>
-                                    <option value="en-GB" <?= $savedTtsLang === 'en-GB' ? 'selected' : '' ?>>English (UK)</option>
-                                    <option value="es-ES" <?= $savedTtsLang === 'es-ES' ? 'selected' : '' ?>>Espanol</option>
-                                    <option value="fr-FR" <?= $savedTtsLang === 'fr-FR' ? 'selected' : '' ?>>Francais</option>
-                                    <option value="de-DE" <?= $savedTtsLang === 'de-DE' ? 'selected' : '' ?>>Deutsch</option>
-                                    <option value="pt-PT" <?= $savedTtsLang === 'pt-PT' ? 'selected' : '' ?>>Portugues</option>
-                                    <option value="pt-BR" <?= $savedTtsLang === 'pt-BR' ? 'selected' : '' ?>>Portugues (Brasil)</option>
-                                    <option value="nl-NL" <?= $savedTtsLang === 'nl-NL' ? 'selected' : '' ?>>Nederlands</option>
-                                    <option value="pl-PL" <?= $savedTtsLang === 'pl-PL' ? 'selected' : '' ?>>Polski</option>
-                                    <option value="ru-RU" <?= $savedTtsLang === 'ru-RU' ? 'selected' : '' ?>>Русский</option>
-                                    <option value="uk-UA" <?= $savedTtsLang === 'uk-UA' ? 'selected' : '' ?>>Українська</option>
-                                    <option value="cs-CZ" <?= $savedTtsLang === 'cs-CZ' ? 'selected' : '' ?>>Cestina</option>
-                                    <option value="el-GR" <?= $savedTtsLang === 'el-GR' ? 'selected' : '' ?>>Ελληνικά</option>
-                                    <option value="ro-RO" <?= $savedTtsLang === 'ro-RO' ? 'selected' : '' ?>>Romana</option>
-                                    <option value="hu-HU" <?= $savedTtsLang === 'hu-HU' ? 'selected' : '' ?>>Magyar</option>
-                                    <option value="sv-SE" <?= $savedTtsLang === 'sv-SE' ? 'selected' : '' ?>>Svenska</option>
-                                    <option value="da-DK" <?= $savedTtsLang === 'da-DK' ? 'selected' : '' ?>>Dansk</option>
-                                    <option value="fi-FI" <?= $savedTtsLang === 'fi-FI' ? 'selected' : '' ?>>Suomi</option>
-                                    <option value="no-NO" <?= $savedTtsLang === 'no-NO' ? 'selected' : '' ?>>Norsk</option>
-                                </optgroup>
-                                <optgroup label="Asiatiche">
-                                    <option value="ja-JP" <?= $savedTtsLang === 'ja-JP' ? 'selected' : '' ?>>日本語</option>
-                                    <option value="zh-CN" <?= $savedTtsLang === 'zh-CN' ? 'selected' : '' ?>>中文 (简体)</option>
-                                    <option value="zh-TW" <?= $savedTtsLang === 'zh-TW' ? 'selected' : '' ?>>中文 (繁體)</option>
-                                    <option value="ko-KR" <?= $savedTtsLang === 'ko-KR' ? 'selected' : '' ?>>한국어</option>
-                                    <option value="hi-IN" <?= $savedTtsLang === 'hi-IN' ? 'selected' : '' ?>>हिन्दी</option>
-                                    <option value="th-TH" <?= $savedTtsLang === 'th-TH' ? 'selected' : '' ?>>ไทย</option>
-                                    <option value="vi-VN" <?= $savedTtsLang === 'vi-VN' ? 'selected' : '' ?>>Tieng Viet</option>
-                                    <option value="id-ID" <?= $savedTtsLang === 'id-ID' ? 'selected' : '' ?>>Bahasa Indonesia</option>
-                                </optgroup>
-                                <optgroup label="Altre">
-                                    <option value="ar-SA" <?= $savedTtsLang === 'ar-SA' ? 'selected' : '' ?>>العربية</option>
-                                    <option value="he-IL" <?= $savedTtsLang === 'he-IL' ? 'selected' : '' ?>>עברית</option>
-                                    <option value="tr-TR" <?= $savedTtsLang === 'tr-TR' ? 'selected' : '' ?>>Turkce</option>
-                                </optgroup>
-                            </select>
-                            <p class="form-hint">La lingua usata per leggere il testo ad alta voce</p>
-                        </div>
-
-                        <script>
-                        function toggleTtsLang() {
-                            const qTts = document.querySelector('input[name="question_types[]"][value="tts"]');
-                            const aTts = document.querySelector('input[name="answer_types[]"][value="tts"]');
-                            const langGroup = document.getElementById('tts-lang-group');
-                            langGroup.style.display = (qTts.checked || aTts.checked) ? 'block' : 'none';
-                        }
-                        // Check on page load
-                        document.addEventListener('DOMContentLoaded', toggleTtsLang);
-                        </script>
 
                         <div class="form-group">
                             <label class="form-label" for="total_questions">Numero di Domande</label>
@@ -360,9 +302,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             'question_types' => $questionTypes,
                             'answer_types' => $answerTypes,
                             'num_questions' => $package['total_questions'],
-                            'topic' => $package['topic'] ?: $package['name'],
-                            'language' => 'italiano',
-                            'tts_lang' => $package['tts_lang'] ?? 'it-IT'
+                            'topic' => $package['topic'] ?: $package['name']
                         ]);
                         ?>
 

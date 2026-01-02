@@ -1,6 +1,6 @@
 <?php
 /**
- * API: Upload Media to R2
+ * API: Upload Media (Local Storage)
  * Handles image and audio uploads for packages
  */
 
@@ -41,23 +41,72 @@ if (!isset($_FILES['file']) || $_FILES['file']['error'] === UPLOAD_ERR_NO_FILE) 
 
 $file = $_FILES['file'];
 
-// Upload to R2
-$folder = "packages/{$packageId}";
-$result = r2()->uploadFromForm($file, $folder);
-
-if (!$result['success']) {
-    jsonResponse(['success' => false, 'error' => $result['error']], 400);
+// Validate file
+if ($file['error'] !== UPLOAD_ERR_OK) {
+    jsonResponse(['success' => false, 'error' => 'Upload error: ' . $file['error']], 400);
 }
 
-// Determine file type
+if ($file['size'] > UPLOAD_MAX_SIZE) {
+    jsonResponse(['success' => false, 'error' => 'File too large'], 400);
+}
+
 $mimeType = mime_content_type($file['tmp_name']);
-$fileType = in_array($mimeType, ALLOWED_IMAGE_TYPES) ? 'image' : 'audio';
+$isImage = in_array($mimeType, ALLOWED_IMAGE_TYPES);
+$isAudio = in_array($mimeType, ALLOWED_AUDIO_TYPES);
+
+if (!$isImage && !$isAudio) {
+    jsonResponse(['success' => false, 'error' => 'File type not allowed: ' . $mimeType], 400);
+}
+
+// Create upload directory for this package
+$uploadDir = __DIR__ . '/../uploads/media/' . $packageId;
+if (!is_dir($uploadDir)) {
+    mkdir($uploadDir, 0755, true);
+}
+
+// Process image (resize if needed)
+$uploadPath = $file['tmp_name'];
+if ($isImage) {
+    $resized = resizeImage($file['tmp_name'], 960, 540, 85);
+    if ($resized) {
+        $uploadPath = $resized;
+        $mimeType = 'image/jpeg';
+    }
+}
+
+// Generate unique filename
+$ext = $isImage ? 'jpg' : strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+$filename = randomString(16) . '.' . $ext;
+$destPath = $uploadDir . '/' . $filename;
+
+// Move file
+if (!move_uploaded_file($uploadPath, $destPath) && $uploadPath !== $file['tmp_name']) {
+    // If resized file, copy instead
+    if (!copy($uploadPath, $destPath)) {
+        jsonResponse(['success' => false, 'error' => 'Failed to save file'], 500);
+    }
+    unlink($uploadPath);
+} elseif ($uploadPath === $file['tmp_name'] && !move_uploaded_file($uploadPath, $destPath)) {
+    jsonResponse(['success' => false, 'error' => 'Failed to move uploaded file'], 500);
+}
+
+// Clean up temp resized file
+if ($uploadPath !== $file['tmp_name'] && file_exists($uploadPath)) {
+    @unlink($uploadPath);
+}
+
+// Build result
+$fileKey = "media/{$packageId}/{$filename}";
+$fileUrl = SITE_URL . "/uploads/{$fileKey}";
+
+// Determine file type for DB
+$fileType = $isImage ? 'image' : 'audio';
 
 // Save to database
 try {
     db()->insert('package_media', [
         'package_id' => $package['id'],
-        'file_key' => $result['key'],
+        'file_key' => $fileKey,
         'file_name' => $file['name'],
         'file_type' => $fileType,
         'mime_type' => $mimeType,
@@ -76,12 +125,12 @@ try {
             if (preg_match('/^\[QUESTION_IMAGE_(\d+)\]$/', $placeholder, $matches)) {
                 $qIndex = (int)$matches[1] - 1; // Convert to 0-based index
                 if (isset($packageJson['questions'][$qIndex])) {
-                    $packageJson['questions'][$qIndex]['question_image'] = $result['url'];
+                    $packageJson['questions'][$qIndex]['question_image'] = $fileUrl;
                 }
             } else {
                 // Replace placeholder in questions text
                 $jsonString = json_encode($packageJson);
-                $jsonString = str_replace($placeholder, $result['url'], $jsonString);
+                $jsonString = str_replace($placeholder, $fileUrl, $jsonString);
                 $packageJson = json_decode($jsonString, true);
             }
 
@@ -91,13 +140,15 @@ try {
 
     jsonResponse([
         'success' => true,
-        'url' => $result['url'],
-        'key' => $result['key'],
+        'url' => $fileUrl,
+        'key' => $fileKey,
         'placeholder' => $placeholder
     ]);
 
 } catch (Exception $e) {
     // Try to delete the uploaded file on error
-    r2()->delete($result['key']);
+    if (file_exists($destPath)) {
+        @unlink($destPath);
+    }
     jsonResponse(['success' => false, 'error' => 'Database error: ' . $e->getMessage()], 500);
 }

@@ -268,3 +268,82 @@ function generateAiPrompt(array $config): string {
 
     return $prompt;
 }
+
+/**
+ * Resize an image to fit within max dimensions (16:9 qHD for mobile app)
+ *
+ * @param string $sourcePath Path to source image
+ * @param int $maxWidth Maximum width (default 960 for qHD)
+ * @param int $maxHeight Maximum height (default 540 for qHD 16:9)
+ * @param int $quality JPEG quality (1-100)
+ * @return string|false Path to resized image or false on failure
+ */
+function resizeImage(string $sourcePath, int $maxWidth = 960, int $maxHeight = 540, int $quality = 85) {
+    $imageInfo = getimagesize($sourcePath);
+    if (!$imageInfo) {
+        return false;
+    }
+
+    $origWidth = $imageInfo[0];
+    $origHeight = $imageInfo[1];
+    $mimeType = $imageInfo['mime'];
+
+    // Create source image based on type
+    switch ($mimeType) {
+        case 'image/jpeg':
+            $source = imagecreatefromjpeg($sourcePath);
+            break;
+        case 'image/png':
+            $source = imagecreatefrompng($sourcePath);
+            break;
+        case 'image/gif':
+            $source = imagecreatefromgif($sourcePath);
+            break;
+        case 'image/webp':
+            $source = imagecreatefromwebp($sourcePath);
+            break;
+        default:
+            return false;
+    }
+
+    if (!$source) {
+        return false;
+    }
+
+    // Calculate new dimensions maintaining aspect ratio
+    $ratio = min($maxWidth / $origWidth, $maxHeight / $origHeight);
+
+    // Only resize if image is larger than max dimensions
+    if ($ratio < 1) {
+        $newWidth = (int) round($origWidth * $ratio);
+        $newHeight = (int) round($origHeight * $ratio);
+    } else {
+        $newWidth = $origWidth;
+        $newHeight = $origHeight;
+    }
+
+    // Create new image
+    $dest = imagecreatetruecolor($newWidth, $newHeight);
+
+    // Fill with white background
+    $white = imagecolorallocate($dest, 255, 255, 255);
+    imagefill($dest, 0, 0, $white);
+
+    // Resize
+    imagecopyresampled(
+        $dest, $source,
+        0, 0, 0, 0,
+        $newWidth, $newHeight,
+        $origWidth, $origHeight
+    );
+
+    // Save to temp file
+    $tempPath = sys_get_temp_dir() . '/' . randomString(16) . '.jpg';
+    $success = imagejpeg($dest, $tempPath, $quality);
+
+    // Clean up
+    imagedestroy($source);
+    imagedestroy($dest);
+
+    return $success ? $tempPath : false;
+}

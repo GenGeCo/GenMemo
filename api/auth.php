@@ -238,14 +238,17 @@ function handleSaveProgress() {
     if ($existing) {
         // Update existing
         $bestScore = max($existing['best_score'], $score);
-        db()->update('user_progress', [
-            'last_score' => $score,
-            'best_score' => $bestScore,
-            'attempts' => $existing['attempts'] + 1,
-            'total_time_spent' => db()->raw("total_time_spent + $timeSpent"),
-            'last_played_at' => $completedAt,
-            'updated_at' => date('Y-m-d H:i:s')
-        ], 'id = ?', [$existing['id']]);
+        db()->query(
+            "UPDATE user_progress SET
+                last_score = ?,
+                best_score = ?,
+                attempts = attempts + 1,
+                total_time_spent = total_time_spent + ?,
+                last_played_at = ?,
+                updated_at = ?
+            WHERE id = ?",
+            [$score, $bestScore, $timeSpent, $completedAt, date('Y-m-d H:i:s'), $existing['id']]
+        );
     } else {
         // Create new
         db()->insert('user_progress', [

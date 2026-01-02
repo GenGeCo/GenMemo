@@ -1,0 +1,32 @@
+# Dependencies
+/vendor/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Config with credentials (use config.example.php as template)
+includes/config.php
+
+# Uploads (media files are on R2)
+/uploads/*
+!/uploads/.gitkeep
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+error_log
+
+# Cache
+/cache/*
+!/cache/.gitkeep

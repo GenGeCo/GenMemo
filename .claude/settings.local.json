@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git init:*)",
+      "Bash(git add:*)",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nInitial commit: GenMemo Web Platform\n\nFeatures:\n- User registration/login system\n- Package creation wizard \\(4 steps\\)\n- AI prompt generator for quiz content\n- Manual question entry\n- Media upload to Cloudflare R2\n- Package publishing \\(public/private\\)\n- API endpoints for Android app\n- Dark mode UI \\(GenPlayer style\\)\n\n🤖 Generated with [Claude Code]\\(https://claude.com/claude-code\\)\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")"
+    ]
+  }
+}

@@ -1,0 +1,285 @@
+<?php
+/**
+ * Dashboard - Dettaglio pacchetto con lista studenti
+ */
+require_once __DIR__ . '/includes/init.php';
+
+Auth::requireLogin();
+$user = Auth::user();
+
+$packageId = $_GET['id'] ?? '';
+
+// Get package (must be owned by user)
+$package = db()->fetch(
+    "SELECT * FROM packages WHERE uuid = ? AND user_id = ?",
+    [$packageId, $user['id']]
+);
+
+if (!$package) {
+    header('Location: dashboard.php');
+    exit;
+}
+
+// Get users who have progress on this package
+$students = db()->fetchAll(
+    "SELECT
+        u.id,
+        u.username,
+        u.email,
+        up.last_score,
+        up.best_score,
+        up.attempts,
+        up.total_time_spent,
+        up.last_played_at,
+        (SELECT COUNT(*) FROM user_question_progress uqp
+         WHERE uqp.user_id = u.id AND uqp.package_id = ?) as questions_answered,
+        (SELECT AVG(score) FROM user_question_progress uqp
+         WHERE uqp.user_id = u.id AND uqp.package_id = ?) as avg_score
+     FROM users u
+     INNER JOIN user_progress up ON u.id = up.user_id
+     WHERE up.package_id = ?
+     ORDER BY up.last_played_at DESC",
+    [$package['id'], $package['id'], $package['id']]
+);
+
+// Also get users who downloaded but may not have progress yet
+$downloaders = db()->fetchAll(
+    "SELECT DISTINCT
+        u.id,
+        u.username,
+        u.email,
+        MAX(pd.downloaded_at) as last_download
+     FROM users u
+     INNER JOIN package_downloads pd ON u.id = pd.user_id
+     WHERE pd.package_id = ?
+     GROUP BY u.id, u.username, u.email
+     ORDER BY last_download DESC",
+    [$package['id']]
+);
+
+// Merge: students with progress + downloaders without progress
+$studentIds = array_column($students, 'id');
+foreach ($downloaders as $dl) {
+    if (!in_array($dl['id'], $studentIds)) {
+        $students[] = [
+            'id' => $dl['id'],
+            'username' => $dl['username'],
+            'email' => $dl['email'],
+            'last_score' => null,
+            'best_score' => null,
+            'attempts' => 0,
+            'total_time_spent' => 0,
+            'last_played_at' => null,
+            'questions_answered' => 0,
+            'avg_score' => null,
+            'only_downloaded' => true,
+            'last_download' => $dl['last_download']
+        ];
+    }
+}
+
+// Calculate package stats
+$totalStudents = count($students);
+$activeStudents = count(array_filter($students, fn($s) => ($s['attempts'] ?? 0) > 0));
+$avgBestScore = 0;
+if ($activeStudents > 0) {
+    $scores = array_filter(array_column($students, 'best_score'), fn($s) => $s !== null);
+    $avgBestScore = count($scores) > 0 ? round(array_sum($scores) / count($scores)) : 0;
+}
+
+function formatTime($seconds) {
+    if (!$seconds) return '-';
+    if ($seconds < 60) return $seconds . 's';
+    if ($seconds < 3600) return floor($seconds / 60) . 'm ' . ($seconds % 60) . 's';
+    return floor($seconds / 3600) . 'h ' . floor(($seconds % 3600) / 60) . 'm';
+}
+?>
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - <?= e($package['name']) ?> - GenMemo</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="page-shell">
+        <div class="content-inner">
+            <!-- Header -->
+            <header>
+                <div class="brand">
+                    <a href="index.php" style="display: flex; align-items: center; gap: 0.75rem; text-decoration: none; color: inherit;">
+                        <div class="brand-logo">GM</div>
+                        <div class="brand-text">
+                            <div class="brand-text-title">GenMemo</div>
+                            <div class="brand-text-sub">Quiz Package Creator</div>
+                        </div>
+                    </a>
+                </div>
+
+                <nav class="nav-links">
+                    <a href="index.php" class="nav-link">Home</a>
+                    <a href="packages.php" class="nav-link">Pacchetti</a>
+                    <a href="create.php" class="nav-link">Crea</a>
+                    <a href="my-packages.php" class="nav-link">I Miei</a>
+                    <a href="dashboard.php" class="nav-link active">Dashboard</a>
+                </nav>
+
+                <div class="user-menu">
+                    <div class="user-info">
+                        <div class="user-avatar"><?= strtoupper(substr($user['username'], 0, 1)) ?></div>
+                        <span><?= e($user['username']) ?></span>
+                    </div>
+                    <a href="logout.php" class="btn-ghost btn-small">Esci</a>
+                </div>
+            </header>
+
+            <!-- Breadcrumb -->
+            <div style="margin-bottom: 1rem;">
+                <a href="dashboard.php" style="color: var(--text-muted); text-decoration: none;">
+                    Dashboard
+                </a>
+                <span style="color: var(--text-muted);"> / </span>
+                <span style="color: var(--text-main);"><?= e($package['name']) ?></span>
+            </div>
+
+            <!-- Package Info -->
+            <section class="section">
+                <h1 class="section-title"><?= e($package['name']) ?></h1>
+                <p class="section-subtitle">
+                    <?= $package['total_questions'] ?> domande
+                    <?php if ($package['topic']): ?>
+                        - <?= e($package['topic']) ?>
+                    <?php endif; ?>
+                </p>
+
+                <!-- Stats Overview -->
+                <div class="grid-3" style="margin-bottom: 2rem;">
+                    <div class="feature-card" style="text-align: center;">
+                        <span class="feature-icon">USR</span>
+                        <div style="font-size: 2rem; font-weight: 700; color: var(--accent);">
+                            <?= $totalStudents ?>
+                        </div>
+                        <div style="color: var(--text-muted);">Studenti Totali</div>
+                    </div>
+
+                    <div class="feature-card" style="text-align: center;">
+                        <span class="feature-icon">ACT</span>
+                        <div style="font-size: 2rem; font-weight: 700; color: var(--accent);">
+                            <?= $activeStudents ?>
+                        </div>
+                        <div style="color: var(--text-muted);">Studenti Attivi</div>
+                    </div>
+
+                    <div class="feature-card" style="text-align: center;">
+                        <span class="feature-icon">AVG</span>
+                        <div style="font-size: 2rem; font-weight: 700; color: var(--accent);">
+                            <?= $avgBestScore ?>%
+                        </div>
+                        <div style="color: var(--text-muted);">Score Medio Migliore</div>
+                    </div>
+                </div>
+
+                <!-- Students List -->
+                <h2 style="margin-bottom: 1rem; color: var(--text-secondary);">Studenti</h2>
+
+                <?php if (empty($students)): ?>
+                    <div class="alert alert-info">
+                        <span class="alert-icon">i</span>
+                        <div>
+                            Nessuno ha ancora scaricato o usato questo pacchetto.
+                        </div>
+                    </div>
+                <?php else: ?>
+                    <div class="table-container" style="overflow-x: auto;">
+                        <table style="width: 100%; border-collapse: collapse;">
+                            <thead>
+                                <tr style="border-bottom: 2px solid var(--border-subtle);">
+                                    <th style="text-align: left; padding: 0.75rem; color: var(--text-muted);">Studente</th>
+                                    <th style="text-align: center; padding: 0.75rem; color: var(--text-muted);">Ultimo Score</th>
+                                    <th style="text-align: center; padding: 0.75rem; color: var(--text-muted);">Miglior Score</th>
+                                    <th style="text-align: center; padding: 0.75rem; color: var(--text-muted);">Tentativi</th>
+                                    <th style="text-align: center; padding: 0.75rem; color: var(--text-muted);">Tempo</th>
+                                    <th style="text-align: center; padding: 0.75rem; color: var(--text-muted);">Ultima Attivita</th>
+                                    <th style="text-align: center; padding: 0.75rem; color: var(--text-muted);">Azioni</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php foreach ($students as $student): ?>
+                                    <tr style="border-bottom: 1px solid var(--border-subtle);">
+                                        <td style="padding: 0.75rem;">
+                                            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                                <div class="user-avatar" style="width: 32px; height: 32px; font-size: 0.8rem;">
+                                                    <?= strtoupper(substr($student['username'], 0, 1)) ?>
+                                                </div>
+                                                <div>
+                                                    <div style="font-weight: 500; color: var(--text-main);">
+                                                        <?= e($student['username']) ?>
+                                                    </div>
+                                                    <div style="font-size: 0.8rem; color: var(--text-muted);">
+                                                        <?= e($student['email']) ?>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td style="text-align: center; padding: 0.75rem;">
+                                            <?php if ($student['last_score'] !== null): ?>
+                                                <span style="color: <?= $student['last_score'] >= 70 ? '#22c55e' : ($student['last_score'] >= 50 ? '#eab308' : '#ef4444') ?>; font-weight: 600;">
+                                                    <?= $student['last_score'] ?>%
+                                                </span>
+                                            <?php else: ?>
+                                                <span style="color: var(--text-muted);">-</span>
+                                            <?php endif; ?>
+                                        </td>
+                                        <td style="text-align: center; padding: 0.75rem;">
+                                            <?php if ($student['best_score'] !== null): ?>
+                                                <span style="color: <?= $student['best_score'] >= 70 ? '#22c55e' : ($student['best_score'] >= 50 ? '#eab308' : '#ef4444') ?>; font-weight: 600;">
+                                                    <?= $student['best_score'] ?>%
+                                                </span>
+                                            <?php else: ?>
+                                                <span style="color: var(--text-muted);">-</span>
+                                            <?php endif; ?>
+                                        </td>
+                                        <td style="text-align: center; padding: 0.75rem; color: var(--text-main);">
+                                            <?= $student['attempts'] ?? 0 ?>
+                                        </td>
+                                        <td style="text-align: center; padding: 0.75rem; color: var(--text-muted);">
+                                            <?= formatTime($student['total_time_spent'] ?? 0) ?>
+                                        </td>
+                                        <td style="text-align: center; padding: 0.75rem; color: var(--text-muted); font-size: 0.85rem;">
+                                            <?php if (!empty($student['last_played_at'])): ?>
+                                                <?= timeAgo($student['last_played_at']) ?>
+                                            <?php elseif (!empty($student['last_download'])): ?>
+                                                <span style="color: var(--text-muted);">Solo download</span><br>
+                                                <span style="font-size: 0.75rem;"><?= timeAgo($student['last_download']) ?></span>
+                                            <?php else: ?>
+                                                -
+                                            <?php endif; ?>
+                                        </td>
+                                        <td style="text-align: center; padding: 0.75rem;">
+                                            <a href="dashboard-student.php?package=<?= $package['uuid'] ?>&user=<?= $student['id'] ?>"
+                                               class="btn-secondary btn-small"
+                                               style="padding: 0.25rem 0.5rem; font-size: 0.8rem;">
+                                                Dettagli
+                                            </a>
+                                        </td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                    </div>
+                <?php endif; ?>
+
+                <div style="margin-top: 2rem;">
+                    <a href="dashboard.php" class="btn-ghost">Torna alla Dashboard</a>
+                </div>
+            </section>
+
+            <!-- Footer -->
+            <footer class="footer">
+                <p>GenMemo &copy; <?= date('Y') ?> - Powered by GenGeCo</p>
+            </footer>
+        </div>
+    </div>
+</body>
+</html>

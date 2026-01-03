@@ -162,75 +162,67 @@ function formatTime($seconds) {
                 </p>
 
                 <!-- Stats Overview -->
-                <div class="grid-3" style="margin-bottom: 2rem;">
-                    <div class="feature-card" style="text-align: center;">
-                        <span class="feature-icon">USR</span>
-                        <div style="font-size: 2rem; font-weight: 700; color: var(--accent);">
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; margin-bottom: 1rem;">
+                    <div class="feature-card" style="text-align: center; padding: 0.5rem;">
+                        <div style="font-size: 1.25rem; font-weight: 700; color: var(--accent);">
                             <?= $totalStudents ?>
                         </div>
-                        <div style="color: var(--text-muted);">Studenti Totali</div>
+                        <div style="color: var(--text-muted); font-size: 0.7rem;">Studenti</div>
                     </div>
 
-                    <div class="feature-card" style="text-align: center;">
-                        <span class="feature-icon">ACT</span>
-                        <div style="font-size: 2rem; font-weight: 700; color: var(--accent);">
+                    <div class="feature-card" style="text-align: center; padding: 0.5rem;">
+                        <div style="font-size: 1.25rem; font-weight: 700; color: var(--accent);">
                             <?= $activeStudents ?>
                         </div>
-                        <div style="color: var(--text-muted);">Studenti Attivi</div>
+                        <div style="color: var(--text-muted); font-size: 0.7rem;">Attivi</div>
                     </div>
 
-                    <div class="feature-card" style="text-align: center;">
-                        <span class="feature-icon">AVG</span>
-                        <div style="font-size: 2rem; font-weight: 700; color: var(--accent);">
+                    <div class="feature-card" style="text-align: center; padding: 0.5rem;">
+                        <div style="font-size: 1.25rem; font-weight: 700; color: var(--accent);">
                             <?= $avgBestScore ?>%
                         </div>
-                        <div style="color: var(--text-muted);">Score Medio Migliore</div>
+                        <div style="color: var(--text-muted); font-size: 0.7rem;">Score Medio</div>
                     </div>
                 </div>
 
                 <!-- Students List -->
-                <h2 style="margin-bottom: 1rem; color: var(--text-secondary);">Studenti</h2>
+                <h3 style="margin-bottom: 0.5rem; color: var(--text-secondary); font-size: 0.9rem;">Studenti</h3>
 
                 <?php if (empty($students)): ?>
-                    <div class="alert alert-info">
-                        <span class="alert-icon">i</span>
-                        <div>
-                            Nessuno ha ancora scaricato o usato questo pacchetto.
-                        </div>
+                    <div class="alert alert-info" style="padding: 0.5rem; font-size: 0.8rem;">
+                        <span class="alert-icon" style="font-size: 0.7rem;">i</span>
+                        <div>Nessuno ha ancora scaricato o usato questo pacchetto.</div>
                     </div>
                 <?php else: ?>
-                    <div class="table-container" style="overflow-x: auto;">
+                    <div class="table-container" style="overflow-x: auto; font-size: 0.75rem;">
                         <table style="width: 100%; border-collapse: collapse;">
                             <thead>
-                                <tr style="border-bottom: 2px solid var(--border-subtle);">
-                                    <th style="text-align: left; padding: 0.75rem; color: var(--text-muted);">Studente</th>
-                                    <th style="text-align: center; padding: 0.75rem; color: var(--text-muted);">Ultimo Score</th>
-                                    <th style="text-align: center; padding: 0.75rem; color: var(--text-muted);">Miglior Score</th>
-                                    <th style="text-align: center; padding: 0.75rem; color: var(--text-muted);">Tentativi</th>
-                                    <th style="text-align: center; padding: 0.75rem; color: var(--text-muted);">Tempo</th>
-                                    <th style="text-align: center; padding: 0.75rem; color: var(--text-muted);">Ultima Attivita</th>
-                                    <th style="text-align: center; padding: 0.75rem; color: var(--text-muted);">Azioni</th>
+                                <tr style="border-bottom: 1px solid var(--border-subtle);">
+                                    <th style="text-align: left; padding: 0.3rem 0.4rem; color: var(--text-muted); font-size: 0.7rem;">Studente</th>
+                                    <th style="text-align: center; padding: 0.3rem 0.4rem; color: var(--text-muted); font-size: 0.7rem;">Score</th>
+                                    <th style="text-align: center; padding: 0.3rem 0.4rem; color: var(--text-muted); font-size: 0.7rem;">Best</th>
+                                    <th style="text-align: center; padding: 0.3rem 0.4rem; color: var(--text-muted); font-size: 0.7rem;">N.</th>
+                                    <th style="text-align: center; padding: 0.3rem 0.4rem; color: var(--text-muted); font-size: 0.7rem;">Tempo</th>
+                                    <th style="text-align: center; padding: 0.3rem 0.4rem; color: var(--text-muted); font-size: 0.7rem;">Attivita</th>
+                                    <th style="text-align: center; padding: 0.3rem 0.4rem; color: var(--text-muted); font-size: 0.7rem;"></th>
                                 </tr>
                             </thead>
                             <tbody>
                                 <?php foreach ($students as $student): ?>
                                     <tr style="border-bottom: 1px solid var(--border-subtle);">
-                                        <td style="padding: 0.75rem;">
-                                            <div style="display: flex; align-items: center; gap: 0.5rem;">
-                                                <div class="user-avatar" style="width: 32px; height: 32px; font-size: 0.8rem;">
+                                        <td style="padding: 0.3rem 0.4rem;">
+                                            <div style="display: flex; align-items: center; gap: 0.3rem;">
+                                                <div class="user-avatar" style="width: 22px; height: 22px; font-size: 0.6rem; flex-shrink: 0;">
                                                     <?= strtoupper(substr($student['username'], 0, 1)) ?>
                                                 </div>
-                                                <div>
-                                                    <div style="font-weight: 500; color: var(--text-main);">
+                                                <div style="min-width: 0;">
+                                                    <div style="font-weight: 500; color: var(--text-main); font-size: 0.75rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
                                                         <?= e($student['username']) ?>
-                                                    </div>
-                                                    <div style="font-size: 0.8rem; color: var(--text-muted);">
-                                                        <?= e($student['email']) ?>
                                                     </div>
                                                 </div>
                                             </div>
                                         </td>
-                                        <td style="text-align: center; padding: 0.75rem;">
+                                        <td style="text-align: center; padding: 0.3rem 0.4rem;">
                                             <?php if ($student['last_score'] !== null): ?>
                                                 <span style="color: <?= $student['last_score'] >= 70 ? '#22c55e' : ($student['last_score'] >= 50 ? '#eab308' : '#ef4444') ?>; font-weight: 600;">
                                                     <?= $student['last_score'] ?>%
@@ -239,7 +231,7 @@ function formatTime($seconds) {
                                                 <span style="color: var(--text-muted);">-</span>
                                             <?php endif; ?>
                                         </td>
-                                        <td style="text-align: center; padding: 0.75rem;">
+                                        <td style="text-align: center; padding: 0.3rem 0.4rem;">
                                             <?php if ($student['best_score'] !== null): ?>
                                                 <span style="color: <?= $student['best_score'] >= 70 ? '#22c55e' : ($student['best_score'] >= 50 ? '#eab308' : '#ef4444') ?>; font-weight: 600;">
                                                     <?= $student['best_score'] ?>%
@@ -248,27 +240,26 @@ function formatTime($seconds) {
                                                 <span style="color: var(--text-muted);">-</span>
                                             <?php endif; ?>
                                         </td>
-                                        <td style="text-align: center; padding: 0.75rem; color: var(--text-main);">
+                                        <td style="text-align: center; padding: 0.3rem 0.4rem; color: var(--text-main);">
                                             <?= $student['attempts'] ?? 0 ?>
                                         </td>
-                                        <td style="text-align: center; padding: 0.75rem; color: var(--text-muted);">
+                                        <td style="text-align: center; padding: 0.3rem 0.4rem; color: var(--text-muted);">
                                             <?= formatTime($student['total_time_spent'] ?? 0) ?>
                                         </td>
-                                        <td style="text-align: center; padding: 0.75rem; color: var(--text-muted); font-size: 0.85rem;">
+                                        <td style="text-align: center; padding: 0.3rem 0.4rem; color: var(--text-muted); font-size: 0.7rem;">
                                             <?php if (!empty($student['last_played_at'])): ?>
                                                 <?= timeAgo($student['last_played_at']) ?>
                                             <?php elseif (!empty($student['last_download'])): ?>
-                                                <span style="color: var(--text-muted);">Solo download</span><br>
-                                                <span style="font-size: 0.75rem;"><?= timeAgo($student['last_download']) ?></span>
+                                                <span style="font-size: 0.65rem;">download</span>
                                             <?php else: ?>
                                                 -
                                             <?php endif; ?>
                                         </td>
-                                        <td style="text-align: center; padding: 0.75rem;">
+                                        <td style="text-align: center; padding: 0.3rem 0.4rem;">
                                             <a href="dashboard-student.php?package=<?= $package['uuid'] ?>&user=<?= $student['id'] ?>"
                                                class="btn-secondary btn-small"
-                                               style="padding: 0.25rem 0.5rem; font-size: 0.8rem;">
-                                                Dettagli
+                                               style="padding: 0.15rem 0.35rem; font-size: 0.65rem;">
+                                                +
                                             </a>
                                         </td>
                                     </tr>
@@ -278,8 +269,8 @@ function formatTime($seconds) {
                     </div>
                 <?php endif; ?>
 
-                <div style="margin-top: 2rem;">
-                    <a href="dashboard.php" class="btn-ghost">Torna alla Dashboard</a>
+                <div style="margin-top: 1rem;">
+                    <a href="dashboard.php" class="btn-ghost" style="padding: 0.3rem 0.6rem; font-size: 0.75rem;">← Dashboard</a>
                 </div>
             </section>
 

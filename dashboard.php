@@ -75,77 +75,60 @@ $totalStats = db()->fetch(
 
             <!-- Dashboard Content -->
             <section class="section">
-                <h1 class="section-title">Dashboard Autore</h1>
-                <p class="section-subtitle">Monitora l'utilizzo dei tuoi pacchetti</p>
+                <h1 style="font-size: 1.1rem; margin: 0 0 0.25rem;">Dashboard</h1>
+                <p style="margin: 0 0 0.75rem; color: var(--text-muted); font-size: 0.7rem;">Statistiche pacchetti</p>
 
                 <!-- Stats Overview -->
-                <div class="grid-3" style="margin-bottom: 2rem;">
-                    <div class="feature-card" style="text-align: center;">
-                        <span class="feature-icon">PKG</span>
-                        <div style="font-size: 2.5rem; font-weight: 700; color: var(--accent);">
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; margin-bottom: 0.75rem;">
+                    <div class="feature-card" style="text-align: center; padding: 0.5rem;">
+                        <div style="font-size: 1.25rem; font-weight: 700; color: var(--accent);">
                             <?= $totalStats['total_packages'] ?? 0 ?>
                         </div>
-                        <div style="color: var(--text-muted);">Pacchetti Creati</div>
+                        <div style="color: var(--text-muted); font-size: 0.65rem;">Pacchetti</div>
                     </div>
 
-                    <div class="feature-card" style="text-align: center;">
-                        <span class="feature-icon">DL</span>
-                        <div style="font-size: 2.5rem; font-weight: 700; color: var(--accent);">
+                    <div class="feature-card" style="text-align: center; padding: 0.5rem;">
+                        <div style="font-size: 1.25rem; font-weight: 700; color: var(--accent);">
                             <?= $totalStats['total_downloads'] ?? 0 ?>
                         </div>
-                        <div style="color: var(--text-muted);">Download Totali</div>
+                        <div style="color: var(--text-muted); font-size: 0.65rem;">Download</div>
                     </div>
 
-                    <div class="feature-card" style="text-align: center;">
-                        <span class="feature-icon">USR</span>
-                        <div style="font-size: 2.5rem; font-weight: 700; color: var(--accent);">
+                    <div class="feature-card" style="text-align: center; padding: 0.5rem;">
+                        <div style="font-size: 1.25rem; font-weight: 700; color: var(--accent);">
                             <?= $totalStats['total_users'] ?? 0 ?>
                         </div>
-                        <div style="color: var(--text-muted);">Studenti Unici</div>
+                        <div style="color: var(--text-muted); font-size: 0.65rem;">Studenti</div>
                     </div>
                 </div>
 
                 <!-- Package List -->
-                <h2 style="margin-bottom: 1rem; color: var(--text-secondary);">I Tuoi Pacchetti</h2>
+                <h3 style="margin: 0 0 0.4rem; color: var(--text-muted); font-size: 0.8rem;">I Tuoi Pacchetti</h3>
 
                 <?php if (empty($packages)): ?>
-                    <div class="alert alert-info">
-                        <span class="alert-icon">i</span>
+                    <div class="alert alert-info" style="padding: 0.4rem; font-size: 0.75rem;">
+                        <span class="alert-icon" style="font-size: 0.65rem;">i</span>
                         <div>
-                            Non hai ancora creato pacchetti.
-                            <a href="create.php" style="color: var(--accent);">Crea il tuo primo pacchetto</a>
+                            Nessun pacchetto. <a href="create.php" style="color: var(--accent);">Crea</a>
                         </div>
                     </div>
                 <?php else: ?>
-                    <div class="packages-list">
+                    <div class="packages-list" style="gap: 0.4rem;">
                         <?php foreach ($packages as $pkg): ?>
                             <a href="dashboard-package.php?id=<?= $pkg['uuid'] ?>" class="package-card-link" style="text-decoration: none;">
-                                <div class="feature-card" style="cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;">
-                                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem;">
-                                        <div>
-                                            <h3 style="margin: 0; color: var(--text-main);"><?= e($pkg['name']) ?></h3>
-                                            <p style="margin: 0.25rem 0 0; color: var(--text-muted); font-size: 0.85rem;">
-                                                <?= $pkg['total_questions'] ?> domande
-                                                <?php if ($pkg['topic']): ?>
-                                                    - <?= e($pkg['topic']) ?>
-                                                <?php endif; ?>
-                                            </p>
+                                <div class="feature-card" style="cursor: pointer; padding: 0.5rem; transition: transform 0.2s, box-shadow 0.2s;">
+                                    <div style="display: flex; justify-content: space-between; align-items: center; gap: 0.5rem;">
+                                        <div style="min-width: 0; flex: 1;">
+                                            <h4 style="margin: 0; color: var(--text-main); font-size: 0.8rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"><?= e($pkg['name']) ?></h4>
+                                            <div style="color: var(--text-muted); font-size: 0.65rem; display: flex; gap: 0.6rem; margin-top: 0.15rem;">
+                                                <span><?= $pkg['total_questions'] ?>q</span>
+                                                <span><strong style="color: var(--accent);"><?= $pkg['unique_users'] ?></strong> studenti</span>
+                                                <span><strong style="color: var(--accent);"><?= $pkg['total_downloads'] ?></strong> dl</span>
+                                            </div>
                                         </div>
-                                        <span class="package-badge <?= $pkg['status'] === 'published' ? 'badge-text' : 'badge-audio' ?>">
-                                            <?= $pkg['status'] === 'published' ? 'Pubblicato' : 'Bozza' ?>
+                                        <span class="package-badge <?= $pkg['status'] === 'published' ? 'badge-text' : 'badge-audio' ?>" style="font-size: 0.55rem; padding: 0.15rem 0.35rem;">
+                                            <?= $pkg['status'] === 'published' ? 'PUB' : 'BOZZA' ?>
                                         </span>
-                                    </div>
-
-                                    <div style="display: flex; gap: 2rem; color: var(--text-muted); font-size: 0.9rem;">
-                                        <div>
-                                            <strong style="color: var(--accent);"><?= $pkg['unique_users'] ?></strong> studenti
-                                        </div>
-                                        <div>
-                                            <strong style="color: var(--accent);"><?= $pkg['total_downloads'] ?></strong> download
-                                        </div>
-                                        <div>
-                                            <?= $pkg['is_public'] ? 'Pubblico' : 'Privato' ?>
-                                        </div>
                                     </div>
                                 </div>
                             </a>

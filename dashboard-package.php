@@ -95,6 +95,21 @@ if ($activeStudents > 0) {
     $avgBestScore = count($scores) > 0 ? round(array_sum($scores) / count($scores)) : 0;
 }
 
+// Get session statistics by type
+$sessionStats = db()->fetch(
+    "SELECT
+        COUNT(*) as total_sessions,
+        SUM(CASE WHEN session_type = 'quiz' OR session_type IS NULL THEN 1 ELSE 0 END) as quiz_sessions,
+        SUM(CASE WHEN session_type = 'review' THEN 1 ELSE 0 END) as review_sessions,
+        SUM(CASE WHEN session_type = 'infinite' THEN 1 ELSE 0 END) as infinite_sessions,
+        SUM(rounds_completed) as total_rounds,
+        MAX(best_streak) as overall_best_streak,
+        SUM(duration_seconds) as total_study_time
+     FROM study_sessions
+     WHERE package_id = ? AND status = 'completed'",
+    [$package['id']]
+);
+
 function formatTime($seconds) {
     if (!$seconds) return '-';
     if ($seconds < 60) return $seconds . 's';
@@ -184,6 +199,36 @@ function formatTime($seconds) {
                         <div style="color: var(--text-muted); font-size: 0.85rem;">Score Medio</div>
                     </div>
                 </div>
+
+                <!-- Session Type Stats -->
+                <?php if (($sessionStats['total_sessions'] ?? 0) > 0): ?>
+                <div class="feature-card" style="padding: 0.75rem; margin-bottom: 1rem;">
+                    <h4 style="margin: 0 0 0.5rem; color: var(--text-secondary); font-size: 0.9rem;">Sessioni di Studio</h4>
+                    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 0.5rem;">
+                        <span style="font-size: 0.8rem; padding: 0.3rem 0.6rem; border-radius: 4px; background: #3b82f620; color: #3b82f6;">
+                            ▶ Quiz: <?= $sessionStats['quiz_sessions'] ?? 0 ?>
+                        </span>
+                        <?php if (($sessionStats['review_sessions'] ?? 0) > 0): ?>
+                        <span style="font-size: 0.8rem; padding: 0.3rem 0.6rem; border-radius: 4px; background: #f5920020; color: #f59200;">
+                            ↻ Ripasso: <?= $sessionStats['review_sessions'] ?>
+                        </span>
+                        <?php endif; ?>
+                        <?php if (($sessionStats['infinite_sessions'] ?? 0) > 0): ?>
+                        <span style="font-size: 0.8rem; padding: 0.3rem 0.6rem; border-radius: 4px; background: #8b5cf620; color: #8b5cf6;">
+                            ∞ Infinito: <?= $sessionStats['infinite_sessions'] ?>
+                        </span>
+                        <?php endif; ?>
+                    </div>
+                    <div style="display: flex; gap: 1rem; flex-wrap: wrap; font-size: 0.8rem; color: var(--text-muted);">
+                        <span>Totale: <strong><?= $sessionStats['total_sessions'] ?></strong> sessioni</span>
+                        <span>Tempo: <strong><?= formatTime($sessionStats['total_study_time'] ?? 0) ?></strong></span>
+                        <?php if (($sessionStats['infinite_sessions'] ?? 0) > 0): ?>
+                        <span style="color: #8b5cf6;">Rounds: <strong><?= $sessionStats['total_rounds'] ?? 0 ?></strong></span>
+                        <span style="color: #22c55e;">Best Streak: <strong><?= $sessionStats['overall_best_streak'] ?? 0 ?></strong></span>
+                        <?php endif; ?>
+                    </div>
+                </div>
+                <?php endif; ?>
 
                 <!-- Students List -->
                 <h3 style="margin-bottom: 0.5rem; color: var(--text-secondary);">Studenti</h3>

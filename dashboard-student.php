@@ -291,12 +291,56 @@ function getScoreLabel($score) {
 
                 <!-- Recent Sessions Detail -->
                 <?php if (!empty($studySessions)): ?>
+                <?php
+                // Calculate session type stats
+                $quizSessions = array_filter($studySessions, fn($s) => ($s['session_type'] ?? 'quiz') === 'quiz');
+                $reviewSessions = array_filter($studySessions, fn($s) => ($s['session_type'] ?? '') === 'review');
+                $infiniteSessions = array_filter($studySessions, fn($s) => ($s['session_type'] ?? '') === 'infinite');
+                $totalRounds = array_sum(array_column($infiniteSessions, 'rounds_completed'));
+                $bestStreak = max(array_merge([0], array_column($infiniteSessions, 'best_streak')));
+                ?>
                 <div class="feature-card" style="margin-bottom: 1rem; padding: 0.75rem;">
                     <h4 style="margin: 0 0 0.5rem; color: var(--text-secondary);">Sessioni Recenti</h4>
+
+                    <!-- Session Type Summary -->
+                    <?php if (count($infiniteSessions) > 0 || count($reviewSessions) > 0): ?>
+                    <div style="display: flex; gap: 0.5rem; margin-bottom: 0.75rem; flex-wrap: wrap;">
+                        <span style="font-size: 0.75rem; padding: 0.25rem 0.5rem; border-radius: 4px; background: #3b82f620; color: #3b82f6;">
+                            Quiz: <?= count($quizSessions) ?>
+                        </span>
+                        <?php if (count($reviewSessions) > 0): ?>
+                        <span style="font-size: 0.75rem; padding: 0.25rem 0.5rem; border-radius: 4px; background: #f5920020; color: #f59200;">
+                            Ripasso: <?= count($reviewSessions) ?>
+                        </span>
+                        <?php endif; ?>
+                        <?php if (count($infiniteSessions) > 0): ?>
+                        <span style="font-size: 0.75rem; padding: 0.25rem 0.5rem; border-radius: 4px; background: #8b5cf620; color: #8b5cf6;">
+                            Infinito: <?= count($infiniteSessions) ?>
+                        </span>
+                        <span style="font-size: 0.75rem; padding: 0.25rem 0.5rem; border-radius: 4px; background: #22c55e20; color: #22c55e;">
+                            Rounds: <?= $totalRounds ?> | Best Streak: <?= $bestStreak ?>
+                        </span>
+                        <?php endif; ?>
+                    </div>
+                    <?php endif; ?>
+
                     <div style="display: flex; flex-direction: column; gap: 0.4rem;">
-                        <?php foreach (array_slice($studySessions, 0, 8) as $session): ?>
+                        <?php foreach (array_slice($studySessions, 0, 8) as $session):
+                            $sessionType = $session['session_type'] ?? 'quiz';
+                            $typeLabel = match($sessionType) {
+                                'infinite' => '∞',
+                                'review' => '↻',
+                                default => '▶'
+                            };
+                            $typeColor = match($sessionType) {
+                                'infinite' => '#8b5cf6',
+                                'review' => '#f59200',
+                                default => '#3b82f6'
+                            };
+                        ?>
                             <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.5rem; background: var(--bg-tertiary); border-radius: 4px; flex-wrap: wrap; gap: 0.5rem; font-size: 0.85rem;">
                                 <span style="color: var(--text-main);">
+                                    <span style="color: <?= $typeColor ?>; font-weight: bold; margin-right: 0.3rem;" title="<?= ucfirst($sessionType) ?>"><?= $typeLabel ?></span>
                                     <?= date('d/m', strtotime($session['started_at'])) ?>
                                     <span style="color: var(--text-muted);">
                                         <?= date('H:i', strtotime($session['started_at'])) ?><?php if ($session['ended_at']): ?> - <?= date('H:i', strtotime($session['ended_at'])) ?><?php endif; ?>
@@ -304,15 +348,21 @@ function getScoreLabel($score) {
                                 </span>
                                 <span style="display: flex; gap: 0.75rem; align-items: center;">
                                     <span style="color: var(--text-muted);"><?= formatTime($session['duration_seconds']) ?></span>
-                                    <span style="color: var(--text-muted);"><?= $session['questions_answered'] ?> domande</span>
+                                    <span style="color: var(--text-muted);"><?= $session['questions_answered'] ?> dom.</span>
                                     <?php if ($session['questions_answered'] > 0):
                                         $sessAccuracy = round(($session['correct_answers'] / $session['questions_answered']) * 100);
                                         $sessColor = $sessAccuracy >= 70 ? '#22c55e' : ($sessAccuracy >= 50 ? '#eab308' : '#ef4444');
                                     ?>
                                         <span style="color: <?= $sessColor ?>; font-weight: 600;"><?= $sessAccuracy ?>%</span>
                                     <?php endif; ?>
+                                    <?php if ($sessionType === 'infinite' && ($session['rounds_completed'] ?? 0) > 0): ?>
+                                        <span style="color: #8b5cf6; font-size: 0.75rem;">R<?= $session['rounds_completed'] ?></span>
+                                    <?php endif; ?>
+                                    <?php if ($sessionType === 'infinite' && ($session['best_streak'] ?? 0) > 0): ?>
+                                        <span style="color: #22c55e; font-size: 0.75rem;">x<?= $session['best_streak'] ?></span>
+                                    <?php endif; ?>
                                     <span style="font-size: 0.75rem; padding: 0.15rem 0.4rem; border-radius: 3px; background: <?= $session['status'] === 'completed' ? '#22c55e22' : ($session['status'] === 'active' ? '#3b82f622' : '#ef444422') ?>; color: <?= $session['status'] === 'completed' ? '#22c55e' : ($session['status'] === 'active' ? '#3b82f6' : '#ef4444') ?>;">
-                                        <?= $session['status'] === 'completed' ? 'Completata' : ($session['status'] === 'active' ? 'In corso' : 'Abbandonata') ?>
+                                        <?= $session['status'] === 'completed' ? '✓' : ($session['status'] === 'active' ? '⏳' : '✗') ?>
                                     </span>
                                 </span>
                             </div>

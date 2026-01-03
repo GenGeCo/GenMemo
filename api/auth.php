@@ -58,6 +58,9 @@ switch ($action) {
     case 'get-study-stats':
         handleGetStudyStats();
         break;
+    case 'get-review-questions':
+        handleGetReviewQuestions();
+        break;
     default:
         jsonResponse(['error' => 'Invalid action'], 400);
 }
@@ -599,6 +602,7 @@ function handleGetAllQuestionProgress() {
 
 /**
  * Start a study session (when app opens or user starts studying a package)
+ * Supports session_type: quiz (default), review, infinite
  */
 function handleStartSession() {
     $user = authenticateRequest();
@@ -606,6 +610,13 @@ function handleStartSession() {
     $packageUuid = $_POST['package_uuid'] ?? null;
     $deviceInfo = substr($_POST['device_info'] ?? '', 0, 255);
     $appVersion = substr($_POST['app_version'] ?? '', 0, 50);
+    $sessionType = $_POST['session_type'] ?? 'quiz';
+    $targetQuestions = $_POST['target_questions'] ?? null; // JSON array of question indices
+
+    // Validate session type
+    if (!in_array($sessionType, ['quiz', 'review', 'infinite'])) {
+        $sessionType = 'quiz';
+    }
 
     $packageId = null;
     if ($packageUuid) {
@@ -628,18 +639,22 @@ function handleStartSession() {
         'device_info' => $deviceInfo ?: null,
         'app_version' => $appVersion ?: null,
         'status' => 'active',
+        'session_type' => $sessionType,
+        'target_questions' => $targetQuestions,
         'created_at' => date('Y-m-d H:i:s')
     ]);
 
     jsonResponse([
         'success' => true,
         'session_id' => $sessionId,
+        'session_type' => $sessionType,
         'started_at' => date('Y-m-d H:i:s')
     ]);
 }
 
 /**
  * End a study session (when app closes or user stops studying)
+ * Supports rounds_completed and best_streak for infinite mode
  */
 function handleEndSession() {
     $user = authenticateRequest();
@@ -647,6 +662,8 @@ function handleEndSession() {
     $sessionId = (int)($_POST['session_id'] ?? 0);
     $questionsAnswered = (int)($_POST['questions_answered'] ?? 0);
     $correctAnswers = (int)($_POST['correct_answers'] ?? 0);
+    $roundsCompleted = (int)($_POST['rounds_completed'] ?? 0);
+    $bestStreak = (int)($_POST['best_streak'] ?? 0);
 
     // Get session
     $session = db()->fetch(
@@ -669,25 +686,31 @@ function handleEndSession() {
     $endedAt = date('Y-m-d H:i:s');
     $startedAt = strtotime($session['started_at']);
     $duration = time() - $startedAt;
+    $sessionType = $session['session_type'] ?? 'quiz';
 
-    // Update session
+    // Update session with infinite mode stats
     db()->query(
         "UPDATE study_sessions SET
             ended_at = ?,
             duration_seconds = ?,
             questions_answered = ?,
             correct_answers = ?,
+            rounds_completed = ?,
+            best_streak = ?,
             status = 'completed'
          WHERE id = ?",
-        [$endedAt, $duration, $questionsAnswered, $correctAnswers, $session['id']]
+        [$endedAt, $duration, $questionsAnswered, $correctAnswers, $roundsCompleted, $bestStreak, $session['id']]
     );
 
-    // Update daily stats
-    updateDailyStats($user['id'], $session['package_id'], $session['started_at'], $duration, $questionsAnswered, $correctAnswers);
+    // Update daily stats with session type
+    updateDailyStats($user['id'], $session['package_id'], $session['started_at'], $duration, $questionsAnswered, $correctAnswers, $sessionType);
 
     jsonResponse([
         'success' => true,
         'duration_seconds' => $duration,
+        'session_type' => $sessionType,
+        'rounds_completed' => $roundsCompleted,
+        'best_streak' => $bestStreak,
         'ended_at' => $endedAt
     ]);
 }
@@ -799,9 +822,9 @@ function handleGetStudyStats() {
 }
 
 /**
- * Helper: Update daily aggregated stats
+ * Helper: Update daily aggregated stats with session type tracking
  */
-function updateDailyStats($userId, $packageId, $sessionStart, $duration, $questions, $correct) {
+function updateDailyStats($userId, $packageId, $sessionStart, $duration, $questions, $correct, $sessionType = 'quiz') {
     $studyDate = date('Y-m-d', strtotime($sessionStart));
     $sessionTime = date('H:i:s', strtotime($sessionStart));
 
@@ -812,6 +835,13 @@ function updateDailyStats($userId, $packageId, $sessionStart, $duration, $questi
         [$userId, $studyDate, $packageId, $packageId]
     );
 
+    // Build session type increment
+    $typeField = match($sessionType) {
+        'review' => 'review_sessions',
+        'infinite' => 'infinite_sessions',
+        default => 'quiz_sessions'
+    };
+
     if ($existing) {
         db()->query(
             "UPDATE daily_study_stats SET
@@ -819,13 +849,14 @@ function updateDailyStats($userId, $packageId, $sessionStart, $duration, $questi
                 total_duration_seconds = total_duration_seconds + ?,
                 total_questions = total_questions + ?,
                 total_correct = total_correct + ?,
+                {$typeField} = {$typeField} + 1,
                 first_session_at = LEAST(COALESCE(first_session_at, ?), ?),
                 last_session_at = GREATEST(COALESCE(last_session_at, ?), ?)
              WHERE id = ?",
             [$duration, $questions, $correct, $sessionTime, $sessionTime, $sessionTime, $sessionTime, $existing['id']]
         );
     } else {
-        db()->insert('daily_study_stats', [
+        $insertData = [
             'user_id' => $userId,
             'package_id' => $packageId,
             'study_date' => $studyDate,
@@ -833,8 +864,106 @@ function updateDailyStats($userId, $packageId, $sessionStart, $duration, $questi
             'total_duration_seconds' => $duration,
             'total_questions' => $questions,
             'total_correct' => $correct,
+            'quiz_sessions' => $sessionType === 'quiz' ? 1 : 0,
+            'review_sessions' => $sessionType === 'review' ? 1 : 0,
+            'infinite_sessions' => $sessionType === 'infinite' ? 1 : 0,
             'first_session_at' => $sessionTime,
             'last_session_at' => $sessionTime
-        ]);
+        ];
+        db()->insert('daily_study_stats', $insertData);
     }
+}
+
+/**
+ * Get questions due for review across all packages (for cross-package review)
+ */
+function handleGetReviewQuestions() {
+    $user = authenticateRequest();
+
+    $limit = min(100, max(10, (int)($_GET['limit'] ?? 50)));
+    $packageUuid = $_GET['package_uuid'] ?? null; // optional: filter by package
+
+    // Build query for questions due for review
+    $params = [$user['id']];
+    $packageFilter = "";
+
+    if ($packageUuid) {
+        $package = db()->fetch("SELECT id FROM packages WHERE uuid = ?", [$packageUuid]);
+        if ($package) {
+            $packageFilter = "AND uqp.package_id = ?";
+            $params[] = $package['id'];
+        }
+    }
+
+    // Get questions that need review:
+    // 1. Due today or overdue (next_review_date <= NOW)
+    // 2. Low score (score < 3 = weak knowledge)
+    // Ordered by urgency then weakness
+    $questions = db()->fetchAll(
+        "SELECT
+            uqp.package_id,
+            p.uuid as package_uuid,
+            p.name as package_name,
+            uqp.question_index,
+            uqp.score,
+            uqp.interval_days,
+            uqp.next_review_date,
+            uqp.streak,
+            uqp.correct_days,
+            CASE
+                WHEN uqp.next_review_date <= NOW() THEN 'urgent'
+                WHEN uqp.score < 3 THEN 'weak'
+                ELSE 'normal'
+            END as priority,
+            CASE
+                WHEN uqp.next_review_date <= NOW() THEN 0
+                ELSE 1
+            END as sort_priority
+         FROM user_question_progress uqp
+         JOIN packages p ON uqp.package_id = p.id
+         WHERE uqp.user_id = ?
+           AND (uqp.next_review_date <= DATE_ADD(NOW(), INTERVAL 1 DAY) OR uqp.score < 3)
+           {$packageFilter}
+         ORDER BY sort_priority ASC, uqp.score ASC, uqp.next_review_date ASC
+         LIMIT ?",
+        array_merge($params, [$limit])
+    );
+
+    // Group by package for easier consumption
+    $byPackage = [];
+    foreach ($questions as $q) {
+        $uuid = $q['package_uuid'];
+        if (!isset($byPackage[$uuid])) {
+            $byPackage[$uuid] = [
+                'package_uuid' => $uuid,
+                'package_name' => $q['package_name'],
+                'questions' => []
+            ];
+        }
+        $byPackage[$uuid]['questions'][] = [
+            'question_index' => (int)$q['question_index'],
+            'score' => (int)$q['score'],
+            'interval_days' => (float)$q['interval_days'],
+            'next_review_date' => $q['next_review_date'],
+            'streak' => (int)$q['streak'],
+            'priority' => $q['priority']
+        ];
+    }
+
+    // Count totals
+    $urgentCount = count(array_filter($questions, fn($q) => $q['priority'] === 'urgent'));
+    $weakCount = count(array_filter($questions, fn($q) => $q['priority'] === 'weak'));
+
+    jsonResponse([
+        'total_due' => count($questions),
+        'urgent_count' => $urgentCount,
+        'weak_count' => $weakCount,
+        'packages' => array_values($byPackage),
+        'questions' => array_map(fn($q) => [
+            'package_uuid' => $q['package_uuid'],
+            'question_index' => (int)$q['question_index'],
+            'score' => (int)$q['score'],
+            'priority' => $q['priority']
+        ], $questions)
+    ]);
 }

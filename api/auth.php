@@ -67,13 +67,8 @@ function handleLogin() {
         [$email]
     );
 
-    // Debug: Return more info about what's happening
-    if (!$user) {
-        jsonResponse(['error' => 'Utente non trovato con questa email', 'debug_email' => $email], 401);
-    }
-
-    if (!password_verify($password, $user['password_hash'])) {
-        jsonResponse(['error' => 'Password non corrisponde', 'debug_hash_len' => strlen($user['password_hash'])], 401);
+    if (!$user || !password_verify($password, $user['password_hash'])) {
+        jsonResponse(['error' => 'Credenziali non valide'], 401);
     }
 
     if (!$user['is_active']) {

@@ -33,3 +33,4 @@ jobs:
             README.md
             DEPLOY.md
             .github/**
+            android/**

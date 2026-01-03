@@ -20,7 +20,7 @@ if (!$package) {
     exit;
 }
 
-// Get users who have progress on this package
+// Get users who have progress on this package (from user_progress OR user_question_progress)
 $students = db()->fetchAll(
     "SELECT
         u.id,
@@ -30,15 +30,23 @@ $students = db()->fetchAll(
         up.best_score,
         up.attempts,
         up.total_time_spent,
-        up.last_played_at,
-        (SELECT COUNT(*) FROM user_question_progress uqp
-         WHERE uqp.user_id = u.id AND uqp.package_id = ?) as questions_answered,
-        (SELECT AVG(score) FROM user_question_progress uqp
-         WHERE uqp.user_id = u.id AND uqp.package_id = ?) as avg_score
+        COALESCE(up.last_played_at, uqp_stats.last_activity) as last_played_at,
+        COALESCE(uqp_stats.questions_answered, 0) as questions_answered,
+        uqp_stats.avg_score
      FROM users u
-     INNER JOIN user_progress up ON u.id = up.user_id
-     WHERE up.package_id = ?
-     ORDER BY up.last_played_at DESC",
+     LEFT JOIN user_progress up ON u.id = up.user_id AND up.package_id = ?
+     LEFT JOIN (
+        SELECT
+            user_id,
+            COUNT(*) as questions_answered,
+            AVG(score) as avg_score,
+            MAX(updated_at) as last_activity
+        FROM user_question_progress
+        WHERE package_id = ?
+        GROUP BY user_id
+     ) uqp_stats ON u.id = uqp_stats.user_id
+     WHERE up.package_id = ? OR uqp_stats.user_id IS NOT NULL
+     ORDER BY COALESCE(up.last_played_at, uqp_stats.last_activity) DESC",
     [$package['id'], $package['id'], $package['id']]
 );
 

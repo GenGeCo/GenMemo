@@ -164,54 +164,54 @@ function getScoreLabel($score) {
 
             <!-- Student Info -->
             <section class="section">
-                <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem;">
-                    <div class="user-avatar" style="width: 36px; height: 36px; font-size: 0.9rem;">
+                <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem;">
+                    <div class="user-avatar" style="width: 48px; height: 48px; font-size: 1.2rem;">
                         <?= strtoupper(substr($student['username'], 0, 1)) ?>
                     </div>
                     <div>
-                        <h1 style="margin: 0; font-size: 1rem; color: var(--text-main);">
+                        <h1 style="margin: 0; font-size: 1.25rem; color: var(--text-main);">
                             <?= e($student['username']) ?>
                         </h1>
-                        <p style="margin: 0; color: var(--text-muted); font-size: 0.7rem;">
+                        <p style="margin: 0; color: var(--text-muted); font-size: 0.85rem;">
                             <?= e($student['email']) ?>
                         </p>
                     </div>
                 </div>
 
                 <!-- Stats Overview -->
-                <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.4rem; margin-bottom: 0.75rem;">
-                    <div class="feature-card" style="text-align: center; padding: 0.4rem;">
-                        <div style="font-size: 1rem; font-weight: 700; color: var(--accent);">
+                <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.5rem; margin-bottom: 1rem;">
+                    <div class="feature-card" style="text-align: center; padding: 0.6rem;">
+                        <div style="font-size: 1.25rem; font-weight: 700; color: var(--accent);">
                             <?= $progress['best_score'] ?? 0 ?>%
                         </div>
-                        <div style="color: var(--text-muted); font-size: 0.6rem;">Score</div>
+                        <div style="color: var(--text-muted); font-size: 0.75rem;">Score</div>
                     </div>
 
-                    <div class="feature-card" style="text-align: center; padding: 0.4rem;">
-                        <div style="font-size: 1rem; font-weight: 700; color: var(--accent);">
+                    <div class="feature-card" style="text-align: center; padding: 0.6rem;">
+                        <div style="font-size: 1.25rem; font-weight: 700; color: var(--accent);">
                             <?= $progress['attempts'] ?? 0 ?>
                         </div>
-                        <div style="color: var(--text-muted); font-size: 0.6rem;">Tentativi</div>
+                        <div style="color: var(--text-muted); font-size: 0.75rem;">Tentativi</div>
                     </div>
 
-                    <div class="feature-card" style="text-align: center; padding: 0.4rem;">
-                        <div style="font-size: 1rem; font-weight: 700; color: var(--accent);">
+                    <div class="feature-card" style="text-align: center; padding: 0.6rem;">
+                        <div style="font-size: 1.25rem; font-weight: 700; color: var(--accent);">
                             <?= formatTime($progress['total_time_spent'] ?? 0) ?>
                         </div>
-                        <div style="color: var(--text-muted); font-size: 0.6rem;">Tempo</div>
+                        <div style="color: var(--text-muted); font-size: 0.75rem;">Tempo</div>
                     </div>
 
-                    <div class="feature-card" style="text-align: center; padding: 0.4rem;">
-                        <div style="font-size: 1rem; font-weight: 700; color: #22c55e;">
+                    <div class="feature-card" style="text-align: center; padding: 0.6rem;">
+                        <div style="font-size: 1.25rem; font-weight: 700; color: #22c55e;">
                             <?= $masteredQuestions ?>/<?= $totalQuestions ?>
                         </div>
-                        <div style="color: var(--text-muted); font-size: 0.6rem;">Padronegg.</div>
+                        <div style="color: var(--text-muted); font-size: 0.75rem;">Padroneggiati</div>
                     </div>
                 </div>
 
                 <!-- Progress Summary -->
-                <div class="feature-card" style="margin-bottom: 0.75rem; padding: 0.5rem;">
-                    <div style="display: flex; gap: 0.25rem; height: 12px; border-radius: 3px; overflow: hidden; margin-bottom: 0.4rem;">
+                <div class="feature-card" style="margin-bottom: 1rem; padding: 0.75rem;">
+                    <div style="display: flex; gap: 0.25rem; height: 16px; border-radius: 4px; overflow: hidden; margin-bottom: 0.5rem;">
                         <?php
                         $masteredPct = $totalQuestions > 0 ? ($masteredQuestions / $totalQuestions) * 100 : 0;
                         $learningPct = $totalQuestions > 0 ? (($answeredQuestions - $masteredQuestions - $strugglingQuestions) / $totalQuestions) * 100 : 0;
@@ -223,46 +223,46 @@ function getScoreLabel($score) {
                         <div style="background: #f97316; width: <?= $strugglingPct ?>%;" title="Difficolta"></div>
                         <div style="background: #374151; width: <?= $notStartedPct ?>%;" title="Non iniziati"></div>
                     </div>
-                    <div style="display: flex; gap: 0.6rem; flex-wrap: wrap; font-size: 0.6rem;">
-                        <span style="display: flex; align-items: center; gap: 0.2rem;"><span style="width: 8px; height: 8px; background: #22c55e; border-radius: 1px;"></span><?= $masteredQuestions ?> ok</span>
-                        <span style="display: flex; align-items: center; gap: 0.2rem;"><span style="width: 8px; height: 8px; background: #eab308; border-radius: 1px;"></span>apprend.</span>
-                        <span style="display: flex; align-items: center; gap: 0.2rem;"><span style="width: 8px; height: 8px; background: #f97316; border-radius: 1px;"></span><?= $strugglingQuestions ?> diff.</span>
-                        <span style="display: flex; align-items: center; gap: 0.2rem;"><span style="width: 8px; height: 8px; background: #374151; border-radius: 1px;"></span>non init.</span>
+                    <div style="display: flex; gap: 1rem; flex-wrap: wrap; font-size: 0.8rem;">
+                        <span style="display: flex; align-items: center; gap: 0.3rem;"><span style="width: 10px; height: 10px; background: #22c55e; border-radius: 2px;"></span>Padroneggiati (<?= $masteredQuestions ?>)</span>
+                        <span style="display: flex; align-items: center; gap: 0.3rem;"><span style="width: 10px; height: 10px; background: #eab308; border-radius: 2px;"></span>Apprendimento</span>
+                        <span style="display: flex; align-items: center; gap: 0.3rem;"><span style="width: 10px; height: 10px; background: #f97316; border-radius: 2px;"></span>Difficolta (<?= $strugglingQuestions ?>)</span>
+                        <span style="display: flex; align-items: center; gap: 0.3rem;"><span style="width: 10px; height: 10px; background: #374151; border-radius: 2px;"></span>Non iniziati</span>
                     </div>
                 </div>
 
                 <!-- Study Sessions History -->
                 <?php if (!empty($dailyStats)): ?>
-                <div class="feature-card" style="margin-bottom: 0.75rem; padding: 0.5rem;">
-                    <h4 style="margin: 0 0 0.4rem; font-size: 0.75rem; color: var(--text-muted);">Attivita 14gg</h4>
-                    <div style="overflow-x: auto; font-size: 0.65rem;">
-                        <table style="width: 100%; border-collapse: collapse;">
+                <div class="feature-card" style="margin-bottom: 1rem; padding: 0.75rem;">
+                    <h4 style="margin: 0 0 0.5rem; color: var(--text-secondary);">Attivita Ultimi 14 Giorni</h4>
+                    <div style="overflow-x: auto;">
+                        <table style="width: 100%; border-collapse: collapse; font-size: 0.85rem;">
                             <thead>
                                 <tr style="border-bottom: 1px solid var(--border-subtle);">
-                                    <th style="text-align: left; padding: 0.2rem; color: var(--text-muted);">Data</th>
-                                    <th style="text-align: center; padding: 0.2rem; color: var(--text-muted);">N</th>
-                                    <th style="text-align: center; padding: 0.2rem; color: var(--text-muted);">Dur.</th>
-                                    <th style="text-align: center; padding: 0.2rem; color: var(--text-muted);">D</th>
-                                    <th style="text-align: center; padding: 0.2rem; color: var(--text-muted);">%</th>
-                                    <th style="text-align: center; padding: 0.2rem; color: var(--text-muted);">Orario</th>
+                                    <th style="text-align: left; padding: 0.4rem; color: var(--text-muted);">Data</th>
+                                    <th style="text-align: center; padding: 0.4rem; color: var(--text-muted);">Sess.</th>
+                                    <th style="text-align: center; padding: 0.4rem; color: var(--text-muted);">Durata</th>
+                                    <th style="text-align: center; padding: 0.4rem; color: var(--text-muted);">Dom.</th>
+                                    <th style="text-align: center; padding: 0.4rem; color: var(--text-muted);">%</th>
+                                    <th style="text-align: center; padding: 0.4rem; color: var(--text-muted);">Orario</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 <?php foreach ($dailyStats as $day): ?>
                                     <tr style="border-bottom: 1px solid var(--border-subtle);">
-                                        <td style="padding: 0.2rem; color: var(--text-main);">
+                                        <td style="padding: 0.4rem; color: var(--text-main);">
                                             <?= date('d/m', strtotime($day['study_date'])) ?>
                                         </td>
-                                        <td style="text-align: center; padding: 0.2rem; color: var(--accent);">
+                                        <td style="text-align: center; padding: 0.4rem; color: var(--accent);">
                                             <?= $day['total_sessions'] ?>
                                         </td>
-                                        <td style="text-align: center; padding: 0.2rem; color: var(--text-main);">
+                                        <td style="text-align: center; padding: 0.4rem; color: var(--text-main);">
                                             <?= formatTime($day['total_duration_seconds']) ?>
                                         </td>
-                                        <td style="text-align: center; padding: 0.2rem; color: var(--text-main);">
+                                        <td style="text-align: center; padding: 0.4rem; color: var(--text-main);">
                                             <?= $day['total_questions'] ?>
                                         </td>
-                                        <td style="text-align: center; padding: 0.2rem;">
+                                        <td style="text-align: center; padding: 0.4rem;">
                                             <?php
                                             $accuracy = $day['total_questions'] > 0
                                                 ? round(($day['total_correct'] / $day['total_questions']) * 100)
@@ -271,7 +271,7 @@ function getScoreLabel($score) {
                                             ?>
                                             <span style="color: <?= $color ?>; font-weight: 600;"><?= $accuracy ?>%</span>
                                         </td>
-                                        <td style="text-align: center; padding: 0.2rem; color: var(--text-muted);">
+                                        <td style="text-align: center; padding: 0.4rem; color: var(--text-muted);">
                                             <?= $day['first_session_at'] ? substr($day['first_session_at'], 0, 5) : '' ?><?= ($day['first_session_at'] && $day['last_session_at'] && $day['first_session_at'] !== $day['last_session_at']) ? '-' . substr($day['last_session_at'], 0, 5) : '' ?>
                                         </td>
                                     </tr>
@@ -280,10 +280,10 @@ function getScoreLabel($score) {
                         </table>
                     </div>
                     <?php if (count($dailyStats) > 0): ?>
-                        <div style="margin-top: 0.3rem; padding-top: 0.3rem; border-top: 1px solid var(--border-subtle); display: flex; gap: 0.8rem; flex-wrap: wrap; font-size: 0.6rem; color: var(--text-muted);">
-                            <span><?= count($dailyStats) ?>gg</span>
-                            <span>Tot: <?= formatTime(array_sum(array_column($dailyStats, 'total_duration_seconds'))) ?></span>
-                            <span>Media: <?= formatTime(round(array_sum(array_column($dailyStats, 'total_duration_seconds')) / count($dailyStats))) ?>/gg</span>
+                        <div style="margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px solid var(--border-subtle); display: flex; gap: 1.5rem; flex-wrap: wrap; font-size: 0.85rem; color: var(--text-muted);">
+                            <span><strong><?= count($dailyStats) ?></strong> giorni</span>
+                            <span>Totale: <strong><?= formatTime(array_sum(array_column($dailyStats, 'total_duration_seconds'))) ?></strong></span>
+                            <span>Media: <strong><?= formatTime(round(array_sum(array_column($dailyStats, 'total_duration_seconds')) / count($dailyStats))) ?></strong>/giorno</span>
                         </div>
                     <?php endif; ?>
                 </div>
@@ -291,66 +291,66 @@ function getScoreLabel($score) {
 
                 <!-- Recent Sessions Detail -->
                 <?php if (!empty($studySessions)): ?>
-                <div class="feature-card" style="margin-bottom: 0.75rem; padding: 0.5rem;">
-                    <h4 style="margin: 0 0 0.4rem; font-size: 0.75rem; color: var(--text-muted);">Sessioni recenti</h4>
-                    <div style="display: flex; flex-direction: column; gap: 0.2rem; font-size: 0.65rem;">
+                <div class="feature-card" style="margin-bottom: 1rem; padding: 0.75rem;">
+                    <h4 style="margin: 0 0 0.5rem; color: var(--text-secondary);">Sessioni Recenti</h4>
+                    <div style="display: flex; flex-direction: column; gap: 0.4rem;">
                         <?php foreach (array_slice($studySessions, 0, 8) as $session): ?>
-                            <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.25rem 0.3rem; background: var(--bg-tertiary); border-radius: 3px; flex-wrap: wrap; gap: 0.2rem;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.5rem; background: var(--bg-tertiary); border-radius: 4px; flex-wrap: wrap; gap: 0.5rem; font-size: 0.85rem;">
                                 <span style="color: var(--text-main);">
                                     <?= date('d/m', strtotime($session['started_at'])) ?>
                                     <span style="color: var(--text-muted);">
-                                        <?= date('H:i', strtotime($session['started_at'])) ?><?php if ($session['ended_at']): ?>-<?= date('H:i', strtotime($session['ended_at'])) ?><?php endif; ?>
+                                        <?= date('H:i', strtotime($session['started_at'])) ?><?php if ($session['ended_at']): ?> - <?= date('H:i', strtotime($session['ended_at'])) ?><?php endif; ?>
                                     </span>
                                 </span>
-                                <span style="display: flex; gap: 0.4rem; align-items: center;">
+                                <span style="display: flex; gap: 0.75rem; align-items: center;">
                                     <span style="color: var(--text-muted);"><?= formatTime($session['duration_seconds']) ?></span>
-                                    <span style="color: var(--text-muted);"><?= $session['questions_answered'] ?>q</span>
+                                    <span style="color: var(--text-muted);"><?= $session['questions_answered'] ?> domande</span>
                                     <?php if ($session['questions_answered'] > 0):
                                         $sessAccuracy = round(($session['correct_answers'] / $session['questions_answered']) * 100);
                                         $sessColor = $sessAccuracy >= 70 ? '#22c55e' : ($sessAccuracy >= 50 ? '#eab308' : '#ef4444');
                                     ?>
                                         <span style="color: <?= $sessColor ?>; font-weight: 600;"><?= $sessAccuracy ?>%</span>
                                     <?php endif; ?>
-                                    <span style="font-size: 0.55rem; padding: 0.1rem 0.25rem; border-radius: 2px; background: <?= $session['status'] === 'completed' ? '#22c55e22' : ($session['status'] === 'active' ? '#3b82f622' : '#ef444422') ?>; color: <?= $session['status'] === 'completed' ? '#22c55e' : ($session['status'] === 'active' ? '#3b82f6' : '#ef4444') ?>;">
-                                        <?= $session['status'] === 'completed' ? 'OK' : ($session['status'] === 'active' ? 'LIVE' : 'X') ?>
+                                    <span style="font-size: 0.75rem; padding: 0.15rem 0.4rem; border-radius: 3px; background: <?= $session['status'] === 'completed' ? '#22c55e22' : ($session['status'] === 'active' ? '#3b82f622' : '#ef444422') ?>; color: <?= $session['status'] === 'completed' ? '#22c55e' : ($session['status'] === 'active' ? '#3b82f6' : '#ef4444') ?>;">
+                                        <?= $session['status'] === 'completed' ? 'Completata' : ($session['status'] === 'active' ? 'In corso' : 'Abbandonata') ?>
                                     </span>
                                 </span>
                             </div>
                         <?php endforeach; ?>
                     </div>
                     <?php if (count($studySessions) > 8): ?>
-                        <p style="text-align: center; color: var(--text-muted); margin: 0.3rem 0 0; font-size: 0.55rem;">+<?= count($studySessions) - 8 ?> altre</p>
+                        <p style="text-align: center; color: var(--text-muted); margin: 0.5rem 0 0; font-size: 0.85rem;">+<?= count($studySessions) - 8 ?> altre sessioni</p>
                     <?php endif; ?>
                 </div>
                 <?php endif; ?>
 
                 <!-- Question by Question Progress -->
-                <h4 style="margin: 0.5rem 0 0.3rem; color: var(--text-muted); font-size: 0.75rem;">Domande</h4>
+                <h4 style="margin: 0 0 0.5rem; color: var(--text-secondary);">Dettaglio Domande</h4>
 
                 <?php if (empty($questions)): ?>
-                    <div class="alert alert-info" style="padding: 0.3rem; font-size: 0.7rem;">
-                        <span class="alert-icon" style="font-size: 0.6rem;">i</span>
+                    <div class="alert alert-info">
+                        <span class="alert-icon">i</span>
                         <div>Impossibile caricare le domande.</div>
                     </div>
                 <?php else: ?>
-                    <div class="questions-progress-list" style="font-size: 0.65rem;">
+                    <div class="questions-progress-list">
                         <?php foreach ($questions as $idx => $q):
                             $qProgress = $progressByIndex[$idx] ?? null;
                             $score = $qProgress['score'] ?? 0;
                             $streak = $qProgress['streak'] ?? 0;
                             $nextReview = $qProgress['next_review_date'] ?? null;
                         ?>
-                            <div style="background: var(--bg-secondary); border-radius: 4px; padding: 0.3rem 0.4rem; margin-bottom: 0.25rem; border-left: 3px solid <?= getScoreColor($score) ?>;">
-                                <div style="display: flex; justify-content: space-between; align-items: center; gap: 0.3rem;">
+                            <div style="background: var(--bg-secondary); border-radius: 6px; padding: 0.6rem 0.75rem; margin-bottom: 0.4rem; border-left: 4px solid <?= getScoreColor($score) ?>;">
+                                <div style="display: flex; justify-content: space-between; align-items: center; gap: 0.5rem;">
                                     <div style="flex: 1; min-width: 0;">
                                         <span style="font-weight: 600; color: var(--accent);">D<?= $idx + 1 ?></span>
-                                        <span style="color: var(--text-main); margin-left: 0.3rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: inline-block; max-width: 70%; vertical-align: middle;">
-                                            <?= e(mb_substr($q['question'] ?? '', 0, 60)) ?><?= mb_strlen($q['question'] ?? '') > 60 ? '...' : '' ?>
+                                        <span style="color: var(--text-main); margin-left: 0.5rem; font-size: 0.9rem;">
+                                            <?= e(mb_substr($q['question'] ?? '', 0, 80)) ?><?= mb_strlen($q['question'] ?? '') > 80 ? '...' : '' ?>
                                         </span>
                                     </div>
-                                    <div style="display: flex; align-items: center; gap: 0.3rem; flex-shrink: 0;">
-                                        <span style="font-weight: 700; color: <?= getScoreColor($score) ?>;"><?= $score ?>/5</span>
-                                        <?php if ($streak > 0): ?><span style="color: var(--text-muted);">x<?= $streak ?></span><?php endif; ?>
+                                    <div style="display: flex; align-items: center; gap: 0.5rem; flex-shrink: 0;">
+                                        <span style="font-size: 1.1rem; font-weight: 700; color: <?= getScoreColor($score) ?>;"><?= $score ?>/5</span>
+                                        <?php if ($streak > 0): ?><span style="color: var(--text-muted); font-size: 0.85rem;">x<?= $streak ?></span><?php endif; ?>
                                     </div>
                                 </div>
                             </div>
@@ -358,9 +358,9 @@ function getScoreLabel($score) {
                     </div>
                 <?php endif; ?>
 
-                <div style="margin-top: 0.75rem; display: flex; gap: 0.5rem;">
-                    <a href="dashboard-package.php?id=<?= $package['uuid'] ?>" class="btn-ghost" style="padding: 0.25rem 0.5rem; font-size: 0.65rem;">← Studenti</a>
-                    <a href="dashboard.php" class="btn-ghost" style="padding: 0.25rem 0.5rem; font-size: 0.65rem;">← Dashboard</a>
+                <div style="margin-top: 1.5rem; display: flex; gap: 0.75rem;">
+                    <a href="dashboard-package.php?id=<?= $package['uuid'] ?>" class="btn-ghost">← Studenti</a>
+                    <a href="dashboard.php" class="btn-ghost">← Dashboard</a>
                 </div>
             </section>
 

@@ -49,33 +49,26 @@ $user = Auth::user();
             </header>
 
             <!-- Hero Section -->
-            <section class="hero">
+            <section class="hero" style="padding: 2rem 0;">
                 <div class="hero-content">
-                    <div class="eyebrow">
-                        <span class="eyebrow-dot">?</span>
-                        <span>Quiz Creator</span>
-                    </div>
-
-                    <h1 class="hero-title">
+                    <h1 class="hero-title" style="margin-bottom: 0.75rem;">
                         Crea <span class="hero-highlight">Pacchetti Quiz</span><br>
                         Impara Ovunque
                     </h1>
 
-                    <p class="hero-subtitle">
+                    <p class="hero-subtitle" style="margin-bottom: 1rem;">
                         Crea pacchetti di domande con <strong>testo, audio e immagini</strong>.<br>
                         Usa l'<strong>assistenza AI</strong> per generare quiz su qualsiasi argomento.
                     </p>
 
-                    <div class="hero-actions">
+                    <div class="hero-actions" style="gap: 0.75rem;">
                         <?php if ($user): ?>
                             <a href="create.php" class="btn-primary">
-                                <span>+</span>
-                                Crea Nuovo Pacchetto
+                                <span>+</span> Crea Pacchetto
                             </a>
                         <?php else: ?>
                             <a href="register.php" class="btn-primary">
-                                <span>+</span>
-                                Inizia Gratis
+                                <span>+</span> Inizia Gratis
                             </a>
                         <?php endif; ?>
                         <a href="packages.php" class="btn-ghost">
@@ -86,84 +79,70 @@ $user = Auth::user();
             </section>
 
             <!-- Features Section -->
-            <section class="section">
-                <h2 class="section-title">
-                    Come Funziona
-                </h2>
-                <p class="section-subtitle">
-                    Tre semplici passaggi per creare il tuo pacchetto quiz
-                </p>
+            <section class="section" style="padding: 1.5rem 0;">
+                <h2 class="section-title" style="margin-bottom: 0.5rem;">Come Funziona</h2>
 
-                <div class="grid-3">
-                    <div class="feature-card">
-                        <span class="feature-icon">1</span>
+                <div class="grid-3" style="gap: 0.75rem;">
+                    <div class="feature-card" style="padding: 1rem;">
+                        <span class="feature-icon" style="width: 32px; height: 32px; font-size: 0.9rem;">1</span>
                         <h3 class="feature-title">Configura il Pacchetto</h3>
                         <p class="feature-text">
                             Scegli il tipo di domande e risposte: testo, audio, immagini o una combinazione.
-                            Definisci il numero di domande.
                         </p>
                     </div>
 
-                    <div class="feature-card">
-                        <span class="feature-icon">2</span>
+                    <div class="feature-card" style="padding: 1rem;">
+                        <span class="feature-icon" style="width: 32px; height: 32px; font-size: 0.9rem;">2</span>
                         <h3 class="feature-title">Crea le Domande</h3>
                         <p class="feature-text">
-                            Inserisci manualmente o usa l'assistenza AI. Ti generiamo un prompt da dare
-                            alla tua AI preferita (ChatGPT, Gemini, Claude...).
+                            Inserisci manualmente o usa l'assistenza AI con ChatGPT, Gemini, Claude...
                         </p>
                     </div>
 
-                    <div class="feature-card">
-                        <span class="feature-icon">3</span>
+                    <div class="feature-card" style="padding: 1rem;">
+                        <span class="feature-icon" style="width: 32px; height: 32px; font-size: 0.9rem;">3</span>
                         <h3 class="feature-title">Aggiungi Media</h3>
                         <p class="feature-text">
-                            Carica immagini e audio dove necessario. Il wizard ti guida domanda per domanda
-                            per completare il pacchetto.
+                            Carica immagini e audio. Il wizard ti guida domanda per domanda.
                         </p>
                     </div>
                 </div>
             </section>
 
             <!-- Package Types -->
-            <section class="section">
-                <h2 class="section-title">
-                    Esempi di Utilizzo
-                </h2>
+            <section class="section" style="padding: 1.5rem 0;">
+                <h2 class="section-title" style="margin-bottom: 0.5rem;">Esempi di Utilizzo</h2>
 
-                <div class="grid-2">
-                    <div class="feature-card">
-                        <span class="feature-icon">EN</span>
+                <div class="grid-2" style="gap: 0.75rem;">
+                    <div class="feature-card" style="padding: 1rem;">
+                        <span class="feature-icon" style="width: 32px; height: 32px; font-size: 0.8rem;">EN</span>
                         <h3 class="feature-title">Lingue Straniere</h3>
                         <p class="feature-text">
-                            Impara vocabolario con audio pronuncia e immagini associative.
-                            Perfetto per inglese, spagnolo, tedesco...
+                            Vocabolario con audio pronuncia e immagini. Inglese, spagnolo, tedesco...
                         </p>
                     </div>
 
-                    <div class="feature-card">
-                        <span class="feature-icon">IT</span>
+                    <div class="feature-card" style="padding: 1rem;">
+                        <span class="feature-icon" style="width: 32px; height: 32px; font-size: 0.8rem;">GEO</span>
                         <h3 class="feature-title">Geografia</h3>
                         <p class="feature-text">
-                            Regioni, capitali, bandiere. Quiz con immagini per memorizzare
-                            visivamente le informazioni.
+                            Regioni, capitali, bandiere. Quiz con immagini per memorizzare visivamente.
                         </p>
                     </div>
 
-                    <div class="feature-card">
-                        <span class="feature-icon">HI</span>
+                    <div class="feature-card" style="padding: 1rem;">
+                        <span class="feature-icon" style="width: 32px; height: 32px; font-size: 0.8rem;">HIS</span>
                         <h3 class="feature-title">Storia</h3>
                         <p class="feature-text">
-                            Date, personaggi, eventi. Associa volti ai nomi dei grandi
-                            della storia con foto e descrizioni.
+                            Date, personaggi, eventi. Associa volti ai nomi dei grandi della storia.
                         </p>
                     </div>
 
-                    <div class="feature-card">
-                        <span class="feature-icon">SC</span>
+                    <div class="feature-card" style="padding: 1rem;">
+                        <span class="feature-icon" style="width: 32px; height: 32px; font-size: 0.8rem;">SCI</span>
                         <h3 class="feature-title">Scienze</h3>
                         <p class="feature-text">
-                            Formule, elementi, anatomia. Usa diagrammi e schemi
-                            per quiz visivi interattivi.
+                            Formule, elementi, anatomia. Diagrammi e schemi per quiz visivi.
                         </p>
                     </div>
                 </div>
@@ -171,17 +150,10 @@ $user = Auth::user();
 
             <!-- CTA Section -->
             <?php if (!$user): ?>
-            <section class="section" style="text-align: center;">
-                <h2 class="section-title">
-                    Pronto a Creare?
-                </h2>
-                <p class="section-subtitle">
-                    Registrati gratuitamente e inizia a creare i tuoi pacchetti quiz
-                </p>
+            <section class="section" style="text-align: center; padding: 1.5rem 0;">
+                <h2 class="section-title" style="margin-bottom: 0.5rem;">Pronto a Creare?</h2>
                 <div class="hero-actions">
-                    <a href="register.php" class="btn-primary">
-                        Registrati Gratis
-                    </a>
+                    <a href="register.php" class="btn-primary">Registrati Gratis</a>
                 </div>
             </section>
             <?php endif; ?>

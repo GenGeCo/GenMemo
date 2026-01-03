@@ -46,6 +46,18 @@ switch ($action) {
     case 'get-all-question-progress':
         handleGetAllQuestionProgress();
         break;
+    case 'start-session':
+        handleStartSession();
+        break;
+    case 'end-session':
+        handleEndSession();
+        break;
+    case 'update-session':
+        handleUpdateSession();
+        break;
+    case 'get-study-stats':
+        handleGetStudyStats();
+        break;
     default:
         jsonResponse(['error' => 'Invalid action'], 400);
 }
@@ -583,4 +595,246 @@ function handleGetAllQuestionProgress() {
     jsonResponse([
         'packages' => $result
     ]);
+}
+
+/**
+ * Start a study session (when app opens or user starts studying a package)
+ */
+function handleStartSession() {
+    $user = authenticateRequest();
+
+    $packageUuid = $_POST['package_uuid'] ?? null;
+    $deviceInfo = substr($_POST['device_info'] ?? '', 0, 255);
+    $appVersion = substr($_POST['app_version'] ?? '', 0, 50);
+
+    $packageId = null;
+    if ($packageUuid) {
+        $package = db()->fetch("SELECT id FROM packages WHERE uuid = ?", [$packageUuid]);
+        $packageId = $package ? $package['id'] : null;
+    }
+
+    // Close any active sessions for this user (abandoned)
+    db()->query(
+        "UPDATE study_sessions SET status = 'abandoned', ended_at = NOW()
+         WHERE user_id = ? AND status = 'active'",
+        [$user['id']]
+    );
+
+    // Create new session
+    $sessionId = db()->insert('study_sessions', [
+        'user_id' => $user['id'],
+        'package_id' => $packageId,
+        'started_at' => date('Y-m-d H:i:s'),
+        'device_info' => $deviceInfo ?: null,
+        'app_version' => $appVersion ?: null,
+        'status' => 'active',
+        'created_at' => date('Y-m-d H:i:s')
+    ]);
+
+    jsonResponse([
+        'success' => true,
+        'session_id' => $sessionId,
+        'started_at' => date('Y-m-d H:i:s')
+    ]);
+}
+
+/**
+ * End a study session (when app closes or user stops studying)
+ */
+function handleEndSession() {
+    $user = authenticateRequest();
+
+    $sessionId = (int)($_POST['session_id'] ?? 0);
+    $questionsAnswered = (int)($_POST['questions_answered'] ?? 0);
+    $correctAnswers = (int)($_POST['correct_answers'] ?? 0);
+
+    // Get session
+    $session = db()->fetch(
+        "SELECT * FROM study_sessions WHERE id = ? AND user_id = ? AND status = 'active'",
+        [$sessionId, $user['id']]
+    );
+
+    if (!$session) {
+        // Try to find any active session for this user
+        $session = db()->fetch(
+            "SELECT * FROM study_sessions WHERE user_id = ? AND status = 'active' ORDER BY id DESC LIMIT 1",
+            [$user['id']]
+        );
+    }
+
+    if (!$session) {
+        jsonResponse(['error' => 'Nessuna sessione attiva trovata'], 404);
+    }
+
+    $endedAt = date('Y-m-d H:i:s');
+    $startedAt = strtotime($session['started_at']);
+    $duration = time() - $startedAt;
+
+    // Update session
+    db()->query(
+        "UPDATE study_sessions SET
+            ended_at = ?,
+            duration_seconds = ?,
+            questions_answered = ?,
+            correct_answers = ?,
+            status = 'completed'
+         WHERE id = ?",
+        [$endedAt, $duration, $questionsAnswered, $correctAnswers, $session['id']]
+    );
+
+    // Update daily stats
+    updateDailyStats($user['id'], $session['package_id'], $session['started_at'], $duration, $questionsAnswered, $correctAnswers);
+
+    jsonResponse([
+        'success' => true,
+        'duration_seconds' => $duration,
+        'ended_at' => $endedAt
+    ]);
+}
+
+/**
+ * Update session activity (periodic ping to track ongoing session)
+ */
+function handleUpdateSession() {
+    $user = authenticateRequest();
+
+    $sessionId = (int)($_POST['session_id'] ?? 0);
+    $questionsAnswered = (int)($_POST['questions_answered'] ?? 0);
+    $correctAnswers = (int)($_POST['correct_answers'] ?? 0);
+
+    $session = db()->fetch(
+        "SELECT * FROM study_sessions WHERE id = ? AND user_id = ? AND status = 'active'",
+        [$sessionId, $user['id']]
+    );
+
+    if (!$session) {
+        jsonResponse(['error' => 'Sessione non trovata'], 404);
+    }
+
+    db()->query(
+        "UPDATE study_sessions SET
+            questions_answered = ?,
+            correct_answers = ?
+         WHERE id = ?",
+        [$questionsAnswered, $correctAnswers, $sessionId]
+    );
+
+    jsonResponse(['success' => true]);
+}
+
+/**
+ * Get study statistics for dashboard
+ */
+function handleGetStudyStats() {
+    $user = authenticateRequest();
+
+    $packageUuid = $_GET['package_uuid'] ?? null;
+    $days = min(90, max(1, (int)($_GET['days'] ?? 30)));
+
+    $packageId = null;
+    if ($packageUuid) {
+        $package = db()->fetch("SELECT id FROM packages WHERE uuid = ?", [$packageUuid]);
+        $packageId = $package ? $package['id'] : null;
+    }
+
+    // Get daily stats for the period
+    $dateFrom = date('Y-m-d', strtotime("-{$days} days"));
+
+    $wherePackage = $packageId ? "AND package_id = ?" : "";
+    $params = $packageId ? [$user['id'], $dateFrom, $packageId] : [$user['id'], $dateFrom];
+
+    $dailyStats = db()->fetchAll(
+        "SELECT
+            study_date,
+            SUM(total_sessions) as sessions,
+            SUM(total_duration_seconds) as duration,
+            SUM(total_questions) as questions,
+            SUM(total_correct) as correct,
+            MIN(first_session_at) as first_time,
+            MAX(last_session_at) as last_time
+         FROM daily_study_stats
+         WHERE user_id = ? AND study_date >= ? $wherePackage
+         GROUP BY study_date
+         ORDER BY study_date DESC",
+        $params
+    );
+
+    // Get totals
+    $totals = db()->fetch(
+        "SELECT
+            COUNT(DISTINCT study_date) as days_studied,
+            COALESCE(SUM(total_sessions), 0) as total_sessions,
+            COALESCE(SUM(total_duration_seconds), 0) as total_duration,
+            COALESCE(SUM(total_questions), 0) as total_questions,
+            COALESCE(SUM(total_correct), 0) as total_correct
+         FROM daily_study_stats
+         WHERE user_id = ? AND study_date >= ? $wherePackage",
+        $params
+    );
+
+    jsonResponse([
+        'period_days' => $days,
+        'totals' => [
+            'days_studied' => (int)$totals['days_studied'],
+            'total_sessions' => (int)$totals['total_sessions'],
+            'total_duration_seconds' => (int)$totals['total_duration'],
+            'total_questions' => (int)$totals['total_questions'],
+            'total_correct' => (int)$totals['total_correct'],
+            'accuracy' => $totals['total_questions'] > 0
+                ? round(($totals['total_correct'] / $totals['total_questions']) * 100, 1)
+                : 0
+        ],
+        'daily' => array_map(function($d) {
+            return [
+                'date' => $d['study_date'],
+                'sessions' => (int)$d['sessions'],
+                'duration_seconds' => (int)$d['duration'],
+                'questions' => (int)$d['questions'],
+                'correct' => (int)$d['correct'],
+                'first_time' => $d['first_time'],
+                'last_time' => $d['last_time']
+            ];
+        }, $dailyStats)
+    ]);
+}
+
+/**
+ * Helper: Update daily aggregated stats
+ */
+function updateDailyStats($userId, $packageId, $sessionStart, $duration, $questions, $correct) {
+    $studyDate = date('Y-m-d', strtotime($sessionStart));
+    $sessionTime = date('H:i:s', strtotime($sessionStart));
+
+    // Check if record exists
+    $existing = db()->fetch(
+        "SELECT id, first_session_at FROM daily_study_stats
+         WHERE user_id = ? AND study_date = ? AND (package_id = ? OR (package_id IS NULL AND ? IS NULL))",
+        [$userId, $studyDate, $packageId, $packageId]
+    );
+
+    if ($existing) {
+        db()->query(
+            "UPDATE daily_study_stats SET
+                total_sessions = total_sessions + 1,
+                total_duration_seconds = total_duration_seconds + ?,
+                total_questions = total_questions + ?,
+                total_correct = total_correct + ?,
+                first_session_at = LEAST(COALESCE(first_session_at, ?), ?),
+                last_session_at = GREATEST(COALESCE(last_session_at, ?), ?)
+             WHERE id = ?",
+            [$duration, $questions, $correct, $sessionTime, $sessionTime, $sessionTime, $sessionTime, $existing['id']]
+        );
+    } else {
+        db()->insert('daily_study_stats', [
+            'user_id' => $userId,
+            'package_id' => $packageId,
+            'study_date' => $studyDate,
+            'total_sessions' => 1,
+            'total_duration_seconds' => $duration,
+            'total_questions' => $questions,
+            'total_correct' => $correct,
+            'first_session_at' => $sessionTime,
+            'last_session_at' => $sessionTime
+        ]);
+    }
 }

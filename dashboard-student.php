@@ -68,6 +68,26 @@ $answeredQuestions = count($questionProgress);
 $masteredQuestions = count(array_filter($questionProgress, fn($q) => $q['score'] >= 4));
 $strugglingQuestions = count(array_filter($questionProgress, fn($q) => $q['score'] <= 1 && $q['score'] > 0));
 
+// Get study sessions for this student on this package (last 30 days)
+$studySessions = db()->fetchAll(
+    "SELECT * FROM study_sessions
+     WHERE user_id = ? AND package_id = ? AND started_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)
+     ORDER BY started_at DESC",
+    [$studentId, $package['id']]
+);
+
+// Get daily stats for this student on this package (last 14 days)
+$dailyStats = db()->fetchAll(
+    "SELECT * FROM daily_study_stats
+     WHERE user_id = ? AND package_id = ? AND study_date >= DATE_SUB(CURDATE(), INTERVAL 14 DAY)
+     ORDER BY study_date DESC",
+    [$studentId, $package['id']]
+);
+
+// Calculate session stats
+$totalStudyTime = array_sum(array_column($studySessions, 'duration_seconds'));
+$avgSessionDuration = count($studySessions) > 0 ? $totalStudyTime / count($studySessions) : 0;
+
 function formatTime($seconds) {
     if (!$seconds) return '-';
     if ($seconds < 60) return $seconds . 's';
@@ -225,6 +245,149 @@ function getScoreLabel($score) {
                         </div>
                     </div>
                 </div>
+
+                <!-- Study Sessions History -->
+                <?php if (!empty($dailyStats)): ?>
+                <div class="feature-card" style="margin-bottom: 2rem;">
+                    <h3 style="margin: 0 0 1rem;">Attivita Ultimi 14 Giorni</h3>
+
+                    <div style="overflow-x: auto;">
+                        <table style="width: 100%; border-collapse: collapse; min-width: 600px;">
+                            <thead>
+                                <tr style="border-bottom: 2px solid var(--border-subtle);">
+                                    <th style="text-align: left; padding: 0.5rem; color: var(--text-muted); font-size: 0.85rem;">Data</th>
+                                    <th style="text-align: center; padding: 0.5rem; color: var(--text-muted); font-size: 0.85rem;">Sessioni</th>
+                                    <th style="text-align: center; padding: 0.5rem; color: var(--text-muted); font-size: 0.85rem;">Durata</th>
+                                    <th style="text-align: center; padding: 0.5rem; color: var(--text-muted); font-size: 0.85rem;">Domande</th>
+                                    <th style="text-align: center; padding: 0.5rem; color: var(--text-muted); font-size: 0.85rem;">Corrette</th>
+                                    <th style="text-align: center; padding: 0.5rem; color: var(--text-muted); font-size: 0.85rem;">Prima Sessione</th>
+                                    <th style="text-align: center; padding: 0.5rem; color: var(--text-muted); font-size: 0.85rem;">Ultima Sessione</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php foreach ($dailyStats as $day): ?>
+                                    <tr style="border-bottom: 1px solid var(--border-subtle);">
+                                        <td style="padding: 0.5rem; color: var(--text-main);">
+                                            <?= date('d/m/Y', strtotime($day['study_date'])) ?>
+                                            <span style="color: var(--text-muted); font-size: 0.8rem;">
+                                                (<?= date('D', strtotime($day['study_date'])) ?>)
+                                            </span>
+                                        </td>
+                                        <td style="text-align: center; padding: 0.5rem; color: var(--accent);">
+                                            <?= $day['total_sessions'] ?>
+                                        </td>
+                                        <td style="text-align: center; padding: 0.5rem; color: var(--text-main);">
+                                            <?= formatTime($day['total_duration_seconds']) ?>
+                                        </td>
+                                        <td style="text-align: center; padding: 0.5rem; color: var(--text-main);">
+                                            <?= $day['total_questions'] ?>
+                                        </td>
+                                        <td style="text-align: center; padding: 0.5rem;">
+                                            <?php
+                                            $accuracy = $day['total_questions'] > 0
+                                                ? round(($day['total_correct'] / $day['total_questions']) * 100)
+                                                : 0;
+                                            $color = $accuracy >= 70 ? '#22c55e' : ($accuracy >= 50 ? '#eab308' : '#ef4444');
+                                            ?>
+                                            <span style="color: <?= $color ?>; font-weight: 600;">
+                                                <?= $day['total_correct'] ?> (<?= $accuracy ?>%)
+                                            </span>
+                                        </td>
+                                        <td style="text-align: center; padding: 0.5rem; color: var(--text-muted);">
+                                            <?= $day['first_session_at'] ? substr($day['first_session_at'], 0, 5) : '-' ?>
+                                        </td>
+                                        <td style="text-align: center; padding: 0.5rem; color: var(--text-muted);">
+                                            <?= $day['last_session_at'] ? substr($day['last_session_at'], 0, 5) : '-' ?>
+                                        </td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <?php if (count($dailyStats) > 0): ?>
+                        <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border-subtle); display: flex; gap: 2rem; flex-wrap: wrap; font-size: 0.85rem;">
+                            <div>
+                                <span style="color: var(--text-muted);">Giorni studiati:</span>
+                                <strong style="color: var(--accent);"> <?= count($dailyStats) ?></strong>
+                            </div>
+                            <div>
+                                <span style="color: var(--text-muted);">Tempo totale (14gg):</span>
+                                <strong style="color: var(--accent);"> <?= formatTime(array_sum(array_column($dailyStats, 'total_duration_seconds'))) ?></strong>
+                            </div>
+                            <div>
+                                <span style="color: var(--text-muted);">Media giornaliera:</span>
+                                <strong style="color: var(--accent);"> <?= formatTime(round(array_sum(array_column($dailyStats, 'total_duration_seconds')) / count($dailyStats))) ?></strong>
+                            </div>
+                        </div>
+                    <?php endif; ?>
+                </div>
+                <?php endif; ?>
+
+                <!-- Recent Sessions Detail -->
+                <?php if (!empty($studySessions)): ?>
+                <div class="feature-card" style="margin-bottom: 2rem;">
+                    <h3 style="margin: 0 0 1rem;">Ultime Sessioni di Studio</h3>
+
+                    <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                        <?php foreach (array_slice($studySessions, 0, 10) as $session): ?>
+                            <div style="
+                                display: flex;
+                                justify-content: space-between;
+                                align-items: center;
+                                padding: 0.75rem;
+                                background: var(--bg-tertiary);
+                                border-radius: 6px;
+                                flex-wrap: wrap;
+                                gap: 0.5rem;
+                            ">
+                                <div>
+                                    <span style="color: var(--text-main); font-weight: 500;">
+                                        <?= date('d/m/Y', strtotime($session['started_at'])) ?>
+                                    </span>
+                                    <span style="color: var(--text-muted); margin-left: 0.5rem;">
+                                        <?= date('H:i', strtotime($session['started_at'])) ?>
+                                        <?php if ($session['ended_at']): ?>
+                                            - <?= date('H:i', strtotime($session['ended_at'])) ?>
+                                        <?php endif; ?>
+                                    </span>
+                                </div>
+                                <div style="display: flex; gap: 1rem; align-items: center;">
+                                    <span style="color: var(--text-muted); font-size: 0.85rem;">
+                                        <?= formatTime($session['duration_seconds']) ?>
+                                    </span>
+                                    <span style="color: var(--text-muted); font-size: 0.85rem;">
+                                        <?= $session['questions_answered'] ?> domande
+                                    </span>
+                                    <?php if ($session['questions_answered'] > 0):
+                                        $sessAccuracy = round(($session['correct_answers'] / $session['questions_answered']) * 100);
+                                        $sessColor = $sessAccuracy >= 70 ? '#22c55e' : ($sessAccuracy >= 50 ? '#eab308' : '#ef4444');
+                                    ?>
+                                        <span style="color: <?= $sessColor ?>; font-weight: 600; font-size: 0.85rem;">
+                                            <?= $sessAccuracy ?>%
+                                        </span>
+                                    <?php endif; ?>
+                                    <span style="
+                                        font-size: 0.7rem;
+                                        padding: 0.15rem 0.4rem;
+                                        border-radius: 3px;
+                                        background: <?= $session['status'] === 'completed' ? '#22c55e22' : ($session['status'] === 'active' ? '#3b82f622' : '#ef444422') ?>;
+                                        color: <?= $session['status'] === 'completed' ? '#22c55e' : ($session['status'] === 'active' ? '#3b82f6' : '#ef4444') ?>;
+                                    ">
+                                        <?= $session['status'] === 'completed' ? 'Completata' : ($session['status'] === 'active' ? 'In corso' : 'Abbandonata') ?>
+                                    </span>
+                                </div>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+
+                    <?php if (count($studySessions) > 10): ?>
+                        <p style="text-align: center; color: var(--text-muted); margin-top: 1rem; font-size: 0.85rem;">
+                            ... e altre <?= count($studySessions) - 10 ?> sessioni
+                        </p>
+                    <?php endif; ?>
+                </div>
+                <?php endif; ?>
 
                 <!-- Question by Question Progress -->
                 <h2 style="margin-bottom: 1rem; color: var(--text-secondary);">Dettaglio Domande</h2>

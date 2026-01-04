@@ -21,8 +21,38 @@ if (!file_exists($jsonPath)) {
     die('File not found');
 }
 
-// Log download
+// Get user ID from session OR app token
 $userId = Auth::userId();
+
+// If no session, check for app token
+if (!$userId) {
+    $token = '';
+
+    // Check Authorization header
+    $authHeader = $_SERVER['HTTP_AUTHORIZATION'] ?? '';
+    if (preg_match('/Bearer\s+(.+)$/i', $authHeader, $matches)) {
+        $token = $matches[1];
+    }
+
+    // Fallback to GET parameter
+    if (empty($token)) {
+        $token = $_GET['token'] ?? '';
+    }
+
+    // Verify token if provided
+    if (!empty($token)) {
+        $tokenHash = hash('sha256', $token);
+        $appToken = db()->fetch(
+            "SELECT user_id FROM app_tokens WHERE token = ? AND expires_at > NOW()",
+            [$tokenHash]
+        );
+        if ($appToken) {
+            $userId = $appToken['user_id'];
+        }
+    }
+}
+
+// Log download
 db()->insert('package_downloads', [
     'package_id' => $package['id'],
     'user_id' => $userId,

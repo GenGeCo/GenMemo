@@ -44,48 +44,37 @@ if (!$package) {
 }
 
 try {
-    // Inizia transazione
-    db()->beginTransaction();
+    $pdo = db()->getConnection();
+    $pdo->beginTransaction();
 
-    // 1. Elimina i progressi degli utenti per questo pacchetto
-    db()->query(
-        "DELETE FROM user_progress WHERE package_id = ?",
-        [$package['id']]
-    );
+    // Elimina dati correlati (ignora errori se tabelle non esistono)
+    $tablesToClean = [
+        'user_progress',
+        'user_question_progress',
+        'package_downloads',
+        'study_sessions'
+    ];
 
-    // 2. Elimina i progressi delle domande
-    db()->query(
-        "DELETE FROM user_question_progress WHERE package_id = ?",
-        [$package['id']]
-    );
-
-    // 3. Elimina i download log
-    db()->query(
-        "DELETE FROM package_downloads WHERE package_id = ?",
-        [$package['id']]
-    );
-
-    // 4. Elimina le sessioni di studio
-    db()->query(
-        "DELETE FROM study_sessions WHERE package_id = ?",
-        [$package['id']]
-    );
-
-    // 5. Elimina il file JSON se esiste
-    if ($package['json_file_key']) {
-        $jsonPath = __DIR__ . '/../uploads/' . $package['json_file_key'];
-        if (file_exists($jsonPath)) {
-            unlink($jsonPath);
+    foreach ($tablesToClean as $table) {
+        try {
+            db()->query("DELETE FROM {$table} WHERE package_id = ?", [$package['id']]);
+        } catch (Exception $e) {
+            // Tabella potrebbe non esistere, ignora
         }
     }
 
-    // 6. Elimina il pacchetto
-    db()->query(
-        "DELETE FROM packages WHERE id = ?",
-        [$package['id']]
-    );
+    // Elimina il file JSON se esiste
+    if ($package['json_file_key']) {
+        $jsonPath = __DIR__ . '/../uploads/' . $package['json_file_key'];
+        if (file_exists($jsonPath)) {
+            @unlink($jsonPath);
+        }
+    }
 
-    db()->commit();
+    // Elimina il pacchetto
+    db()->query("DELETE FROM packages WHERE id = ?", [$package['id']]);
+
+    $pdo->commit();
 
     jsonResponse([
         'success' => true,
@@ -93,6 +82,8 @@ try {
     ]);
 
 } catch (Exception $e) {
-    db()->rollback();
+    if (isset($pdo)) {
+        $pdo->rollback();
+    }
     jsonResponse(['error' => 'Errore durante l\'eliminazione: ' . $e->getMessage()], 500);
 }

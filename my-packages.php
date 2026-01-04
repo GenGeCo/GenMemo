@@ -132,6 +132,11 @@ $packages = db()->fetchAll(
                                     <a href="edit-package.php?id=<?= $pkg['uuid'] ?>" class="btn-ghost btn-small">
                                         Modifica
                                     </a>
+                                    <button type="button" class="btn-ghost btn-small btn-danger"
+                                            onclick="confirmDelete('<?= $pkg['uuid'] ?>', '<?= e(addslashes($pkg['name'])) ?>')"
+                                            title="Elimina pacchetto">
+                                        X
+                                    </button>
                                 </div>
                             </div>
                         <?php endforeach; ?>
@@ -145,5 +150,56 @@ $packages = db()->fetchAll(
             </footer>
         </div>
     </div>
+
+    <!-- Delete confirmation modal -->
+    <div id="deleteModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <h3>Elimina Pacchetto</h3>
+            <p>Sei sicuro di voler eliminare "<strong id="deletePackageName"></strong>"?</p>
+            <p style="color: var(--text-muted); font-size: 0.9rem;">
+                Questa azione non puo essere annullata. Gli studenti che hanno gia scaricato il pacchetto potranno continuare ad usarlo.
+            </p>
+            <div style="display: flex; gap: 0.5rem; justify-content: flex-end; margin-top: 1.5rem;">
+                <button type="button" class="btn-ghost" onclick="closeDeleteModal()">Annulla</button>
+                <button type="button" class="btn-danger" onclick="executeDelete()">Elimina</button>
+            </div>
+        </div>
+    </div>
+    <style>
+        .btn-danger { background: #dc3545; color: white; border: none; padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer; }
+        .btn-danger:hover { background: #c82333; }
+        .btn-ghost.btn-danger { background: transparent; color: #dc3545; border: 1px solid #dc3545; }
+        .btn-ghost.btn-danger:hover { background: #dc3545; color: white; }
+        .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 1000; }
+        .modal-content { background: var(--surface); padding: 1.5rem; border-radius: 12px; max-width: 400px; width: 90%; }
+        .modal-content h3 { margin: 0 0 1rem; color: var(--text-main); }
+        .modal-content p { margin: 0 0 0.5rem; color: var(--text-secondary); }
+    </style>
+    <script>
+        let deletePackageUuid = null;
+        function confirmDelete(uuid, name) {
+            deletePackageUuid = uuid;
+            document.getElementById('deletePackageName').textContent = name;
+            document.getElementById('deleteModal').style.display = 'flex';
+        }
+        function closeDeleteModal() {
+            document.getElementById('deleteModal').style.display = 'none';
+            deletePackageUuid = null;
+        }
+        function executeDelete() {
+            if (!deletePackageUuid) return;
+            const formData = new FormData();
+            formData.append('package_uuid', deletePackageUuid);
+            formData.append('csrf_token', '<?= Auth::csrfToken() ?>');
+            fetch('api/delete-package.php', { method: 'POST', body: formData })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) window.location.reload();
+                else { alert('Errore: ' + (data.error || 'Errore')); closeDeleteModal(); }
+            })
+            .catch(e => { alert('Errore: ' + e.message); closeDeleteModal(); });
+        }
+        document.getElementById('deleteModal').addEventListener('click', function(e) { if (e.target === this) closeDeleteModal(); });
+    </script>
 </body>
 </html>
